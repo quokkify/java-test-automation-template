@@ -1,0 +1,24 @@
+_min_copier_version: "9.18.2"
+_subdirectory: template
+_answers_file: .copier-answers.yml
+_templates_suffix: .jinja
+
+project_name:
+  type: str
+  help: Gradle root project name
+  default: test-automation
+  validator: >-
+    {% if not (project_name | regex_search('^[A-Za-z0-9][A-Za-z0-9_.-]*$')) %}
+    Use letters, digits, dot, underscore or dash, starting with a letter or digit.
+    {% endif %}
+
+_skip_if_exists:
+  - .gitattributes
+  - .gitignore
+  - build.gradle
+  - settings.gradle
+  - gradlew
+  - gradlew.bat
+  - gradle/**
+  - src/**
+  - tools/**
