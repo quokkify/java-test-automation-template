@@ -40,7 +40,7 @@ After the first generation the build, Gradle scripts, version catalog, wrapper, 
 - [ ] Add the compile command to your CI with JDK 21; decide when to run tests.
 - [ ] Commit `.copier-answers.yml`; it is needed for updates.
 
-If the repository also uses [quokkify/project-toolkit](https://github.com/quokkify/project-toolkit), add `java` to its `renovate_presets` answer so Renovate maintains these dependencies, and add the compile command to its own CI.
+If the repository also uses [quokkify/ci-kit](https://github.com/quokkify/ci-kit), add `java` to its `renovate_presets` answer so Renovate maintains these dependencies, and add the compile command to its own CI.
 
 ## Update the template
 
