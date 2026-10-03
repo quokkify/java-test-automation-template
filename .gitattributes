@@ -1,0 +1,2 @@
+template/gradlew.bat text eol=crlf whitespace=cr-at-eol
+*.jar binary

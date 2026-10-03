@@ -1,0 +1,16 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    uses: quokkify/project-toolkit/.github/workflows/release-please.yml@v2.24.0
+    with:
+      mode: single
+      config-backed-single: true
