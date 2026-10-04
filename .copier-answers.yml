@@ -1,0 +1,20 @@
+_commit: v3.0.1
+_src_path: https://github.com/quokkify/ci-kit.git
+project_name: Java Test Automation Template
+toolkit_version: v3.0.1
+components: []
+docker: false
+codeql: true
+codeql_languages:
+  - actions
+  - python
+gitleaks: true
+allure_report: false
+release_please: true
+release_mode: single
+renovate: true
+renovate_config_repository: quokkify/renovate-presets
+renovate_presets:
+  - default
+  - java
+  - github-actions
