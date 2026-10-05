@@ -10,11 +10,13 @@ JDK 21. The Gradle wrapper downloads Gradle itself.
 
 ## Commands
 
-Compile and run Checkstyle and SpotBugs without running tests:
+Compile, then run Checkstyle, SpotBugs and the architecture rules without running tests:
 
 ```sh
-./gradlew assemble testClasses checkstyleMain checkstyleTest spotbugsMain spotbugsTest
+./gradlew assemble testClasses checkstyleMain checkstyleTest spotbugsMain spotbugsTest verifyArchitecture
 ```
+
+`verifyArchitecture` runs the [q4j architecture](https://github.com/quokkify/q4j/tree/main/architecture) rules listed in `tools/architecture`, and `./gradlew check` runs it too. The rules, the fixes for their findings, and the steps to add the gate to an older project are in [docs/agents/architecture-verification.md](docs/agents/architecture-verification.md).
 
 Run the tests:
 
@@ -36,7 +38,7 @@ Pick modules from the [module catalog](https://github.com/quokkify/q4j#-module-c
 
 ## File ownership
 
-After the first generation the build, Gradle scripts, version catalog, wrapper, tool configs, sources, and `settings.gradle` belong to your project and are never overwritten. Template updates refresh only this README, `AGENTS.md`, and `.copier-answers.yml`. Put project-specific agent rules in `AGENTS.project.md`.
+After the first generation the build, Gradle scripts, version catalog, wrapper, tool configs, sources, and `settings.gradle` belong to your project and are never overwritten. Template updates refresh only this README, `AGENTS.md`, the specs under `docs/agents`, and `.copier-answers.yml`. Put project-specific agent rules in `AGENTS.project.md`.
 
 ## First-day checklist
 
