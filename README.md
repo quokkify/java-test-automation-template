@@ -25,17 +25,16 @@ test-automation/
   .gitignore
   README.md
   AGENTS.md      (agent rules: layout, config, q4j docs)
-  CLAUDE.md      (imports AGENTS.md)
   build.gradle
   settings.gradle
   gradlew, gradlew.bat
   gradle/        (scripts, version catalog, wrapper)
-  src/main/      (framework: example config)
-  src/test/      (example test)
+  src/main/java/<root>/<name>/   config, model, service, helper, verification, step (BaseSteps)
+  src/test/java/<root>/<name>/   test (BaseTest, StarterTest)
   tools/         (Checkstyle, SpotBugs)
 ```
 
-Everything except `README.md`, `AGENTS.md`, and `CLAUDE.md` is yours after creation; `copier update` refreshes those three. See the generated README.
+Copier asks for `project_name`, `package_root` (e.g. `dev.quokkify`), and `package_name` (defaults to the project name). Everything except `README.md` and `AGENTS.md` is yours after creation; `copier update` refreshes those two. See the generated README.
 
 ## Update
 

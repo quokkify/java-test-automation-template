@@ -27,7 +27,7 @@ For a module that is not listed here, look up its path in the [module catalog](h
 
 ## 2. Where code goes
 
-`src/main` holds the test framework: code that any test can reuse. `src/test` holds only tests. Keep one base package for both, and use the sub-packages below.
+`src/main` holds the test framework: code that any test can reuse. `src/test` holds only tests. `<base>` is the base package `<package_root>.<package_name>` from `.copier-answers.yml`. The template generated every package below with a `package-info.java` that states its purpose. Put each class into the matching package. Do not create other top-level packages.
 
 ```text
 src/main/java/<base>/
@@ -36,11 +36,11 @@ src/main/java/<base>/
   service/       *Service extends dev.quokkify.service.ApiService: endpoints, return ValidatableResponse
   helper/        optional: call a service, check status, deserialize into a model
   verification/  *Verification extends BaseApiVerification<Self> (or PageSteps Verification, ...)
-  steps/         *Steps extends ApiSteps<V> / PageSteps / AbstractDatabaseSteps; BaseSteps aggregates them
+  step/          *Steps extends ApiSteps<V> / PageSteps / AbstractDatabaseSteps; BaseSteps aggregates them
 src/main/resources/   *.properties read by the Owner configs
-src/test/java/<base>/
+src/test/java/<base>/test/
   BaseTest       extends BaseSteps; TestNG lifecycle (@BeforeClass/@AfterClass) only
-  ...Test        @Test methods only
+  ...Test        @Test methods only; group by layer in sub-packages (test/api, test/ui, ...) when there are many
 src/test/resources/   TestNG suites, META-INF/services listener registration
 ```
 
@@ -57,11 +57,11 @@ Each rule can be checked in review.
 1. **Test classes contain only test methods and lifecycle methods.** No nested or private classes, no `RestAssured.given()`, no endpoint paths, no Hamcrest/JSON-path body checks. Why: anything inside a test class cannot be reused, and it bypasses the Allure steps that the report depends on.
 2. **Every setting comes from an Owner config read through `ConfigRegistry`.** This covers base URIs, credentials, timeouts, and feature flags. Never use `System.getProperty`, `System.getenv`, or hard-coded URLs in Java code. Why: Owner already merges system properties, environment variables, and properties files, so one key works locally and in CI.
 3. **Reuse the configs that q4j ships before you add a key.** Examples: `dev.quokkify.config.Configuration` from `rest-assured` (`MAX_RESPONSE_TIME_SECONDS`, which `ApiService` already reads), `DatabaseConfig` from `sql` (`SQL_DATABASE_*`), `BrowserConfiguration` from `selenide` (`BROWSER*`), and `WsConfiguration` from `tyrus` (`WS_URL`). Add your own config only for keys that are specific to this project.
-4. **One entry point per config area.** Make the Owner interface `*Configuration` package-private, and expose its values through one `public final` `*Config` class, like `example.config.StarterConfig`. Values that must change at runtime use `ConfigRegistry.getReloadable` and `ConfigRegistry.overlay` instead of `static final` constants.
+4. **One entry point per config area.** Make the Owner interface `*Configuration` package-private, and expose its values through one `public final` `*Config` class, like `<base>.config.StarterConfig`. Values that must change at runtime use `ConfigRegistry.getReloadable` and `ConfigRegistry.overlay` instead of `static final` constants.
    Do not name your properties files after the ones q4j ships (`api-config.properties`, `browser.properties`, and others), because the same name on the classpath shadows the q4j file.
 5. **Services only send requests.** A `*Service` extends `ApiService`, builds the request spec from config, keeps endpoint paths as constants, and returns `ValidatableResponse`. It makes no assertions.
 6. **Steps act; verifications assert.** A `*Steps` class extends the q4j base for its layer. It sets `verification` in its constructor and marks every public action with `@Step`. Assertions go in a `*Verification` class with `@Step` methods that return `self()` so calls can chain.
-7. **`BaseSteps` owns the steps fields.** `BaseSteps` lives in `src/main` and declares one `protected final` field per steps class, for example `apiSteps`. `BaseTest` extends `BaseSteps`, and tests use those fields.
+7. **`BaseSteps` owns the steps fields.** `BaseSteps` lives in `<base>.step` (generated empty) and declares one `protected final` field per steps class, for example `apiSteps`. `BaseTest` extends `BaseSteps`, and tests use those fields.
 8. **Tests read as the scenario:** `apiSteps.action(...)` and then `apiSteps.verify().expectation(...)`.
 
 ## 4. API example
@@ -105,7 +105,7 @@ public class HealthVerification extends BaseApiVerification<HealthVerification> 
   }
 }
 
-// src/main/java/<base>/steps/HealthSteps.java
+// src/main/java/<base>/step/HealthSteps.java
 public class HealthSteps extends ApiSteps<HealthVerification> {
   private final HealthService service = new HealthService();
 
@@ -119,16 +119,16 @@ public class HealthSteps extends ApiSteps<HealthVerification> {
   }
 }
 
-// src/main/java/<base>/steps/BaseSteps.java
+// src/main/java/<base>/step/BaseSteps.java
 public abstract class BaseSteps {
   protected final HealthSteps healthSteps = new HealthSteps();
 }
 
-// src/test/java/<base>/BaseTest.java
+// src/test/java/<base>/test/BaseTest.java
 public abstract class BaseTest extends BaseSteps {
 }
 
-// src/test/java/<base>/api/HealthTest.java
+// src/test/java/<base>/test/api/HealthTest.java
 public class HealthTest extends BaseTest {
   @Test(groups = "api")
   public void reportsLiveness() {
