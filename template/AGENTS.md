@@ -25,6 +25,8 @@ A class in the "Use or compose" column goes into your own steps class as a field
 
 For a module that is not listed here, look up its path in the [module catalog](https://github.com/quokkify/q4j#-module-catalog) and the `settings.gradle` of q4j.
 
+Architecture verification has its own spec: [docs/agents/architecture-verification.md](docs/agents/architecture-verification.md). Read it when `build.gradle` does not apply `gradle/architecture.gradle`, because the gate is then not wired yet and the spec tells you how to add it. Read it also when `verifyArchitecture` reports a finding.
+
 ## 2. Where code goes
 
 `src/main` holds the test framework: code that any test can reuse. `src/test` holds only tests. `<base>` is the base package `<package_root>.<package_name>` from `.copier-answers.yml`. The template generated every package below with a `package-info.java` that states its purpose. Put each class into the matching package. Do not create other top-level packages.
@@ -142,7 +144,7 @@ UI and database tests follow the same layers. For UI, write a `<Name>Page`, a `<
 
 ## 5. Done checklist
 
-- [ ] `./gradlew assemble testClasses checkstyleMain checkstyleTest spotbugsMain spotbugsTest` passes.
+- [ ] `./gradlew assemble testClasses checkstyleMain checkstyleTest spotbugsMain spotbugsTest verifyArchitecture` passes.
 - [ ] `grep -rnE 'RestAssured|System\.(getProperty|getenv)' src/test/java` prints nothing.
 - [ ] No base URI or host is hard-coded in `src/test/java`; it comes from a `*Config` class.
 - [ ] Every new class under `src/test/java` is a test class or `BaseTest`, and none contains a nested class.

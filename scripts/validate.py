@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -15,14 +16,15 @@ from copier import run_copy, run_update
 ROOT = Path(__file__).resolve().parents[1]
 GRADLE_TASKS = [
     "assemble", "testClasses", "checkstyleMain", "checkstyleTest",
-    "spotbugsMain", "spotbugsTest",
+    "spotbugsMain", "spotbugsTest", "verifyArchitecture",
 ]
 EXPECTED = [
     ".copier-answers.yml", ".gitattributes", ".gitignore", "README.md", "AGENTS.md",
-    "build.gradle", "settings.gradle", "gradlew", "gradlew.bat",
+    "build.gradle", "settings.gradle", "gradle.properties", "gradlew", "gradlew.bat",
     "gradle/wrapper/gradle-wrapper.jar", "gradle/wrapper/gradle-wrapper.properties",
     "gradle/libs.versions.toml", "gradle/code-analysis.gradle",
     "gradle/compilation.gradle", "gradle/dependencies.gradle", "gradle/tests.gradle",
+    "gradle/architecture.gradle", "docs/agents/architecture-verification.md",
     "src/main/resources/starter.properties",
     *(f"src/main/java/com/example/test_automation/{name}" for name in (
         "config/package-info.java", "config/StarterConfig.java", "config/StarterConfiguration.java",
@@ -33,8 +35,10 @@ EXPECTED = [
         "package-info.java", "BaseTest.java", "StarterTest.java",
     )),
     "tools/checkstyle/checkstyle.xml", "tools/spotbugs/excludeFilter.xml",
+    "tools/architecture/log4j2.xml",
+    "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule",
 ]
-MANAGED = {"README.md", "AGENTS.md", ".copier-answers.yml"}
+MANAGED = {"README.md", "AGENTS.md", "docs/agents/architecture-verification.md", ".copier-answers.yml"}
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -66,6 +70,44 @@ def snapshot(directory: Path) -> dict[Path, bytes]:
     }
 
 
+ADOPTION = [
+    "gradle.properties", "gradle/architecture.gradle", "docs/agents/architecture-verification.md",
+    "tools/architecture/log4j2.xml",
+    "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule",
+]
+
+
+def validate_gate_adoption(temporary: Path) -> None:
+    """A project generated before the architecture gate gets its files on update, never its build edits."""
+    source = temporary / "legacy-source"
+    source.mkdir()
+    shutil.copy2(ROOT / "copier.yml", source / "copier.yml")
+    shutil.copytree(ROOT / "template", source / "template")
+    for name in ADOPTION:
+        template_name = name + ".jinja" if name == "gradle.properties" else name
+        (source / "template" / template_name).unlink()
+    init_git(source)
+    commit(source, "Template before the architecture gate")
+    run(["git", "tag", "v1.0.0"], source)
+
+    project = temporary / "legacy-project"
+    run_copy(str(source), project, defaults=True, vcs_ref="v1.0.0")
+    init_git(project)
+    build = b"project-owned build without the gate\n"
+    (project / "build.gradle").write_bytes(build)
+    commit(project, "Legacy project")
+
+    shutil.rmtree(source / "template")
+    shutil.copytree(ROOT / "template", source / "template")
+    commit(source, "Template with the architecture gate")
+    run(["git", "tag", "v2.0.0"], source)
+
+    run_update(project, defaults=True, overwrite=True, vcs_ref="v2.0.0")
+    for name in ADOPTION:
+        assert (project / name).is_file(), f"update must add the missing {name}"
+    assert (project / "build.gradle").read_bytes() == build, "update must leave build.gradle to the project"
+
+
 def validate(static: bool) -> None:
     with tempfile.TemporaryDirectory(prefix="java-test-automation-template-") as tmp:
         temporary = Path(tmp).resolve()
@@ -89,6 +131,22 @@ def validate(static: bool) -> None:
                 assert "{{" not in text, f"unrendered expression in {path.name}"
         settings = (project / "settings.gradle").read_text()
         assert settings.strip() == 'rootProject.name = "test-automation"', settings
+        properties = (project / "gradle.properties").read_text()
+        assert properties.strip() == "architecture.packages=com.example.test_automation", properties
+        assert "apply from: 'gradle/architecture.gradle'" in (project / "build.gradle").read_text()
+        catalog = (project / "gradle/libs.versions.toml").read_text()
+        q4j = tuple(int(part) for part in re.search(r'^q4j = "([0-9.]+)"', catalog, re.M).group(1).split("."))
+        assert q4j >= (0, 9, 0), f"architecture needs q4j 0.9.0 or later, got {q4j}"
+        for alias in ("q4j-architecture", "log4j-core", "log4j-slf4j2-impl"):
+            assert re.search(rf"^{alias} = ", catalog, re.M), f"catalog must declare {alias}"
+        registry = project / "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule"
+        registered = {line.strip().rsplit(".", 1)[-1] for line in registry.read_text().splitlines()
+                      if line.strip() and not line.startswith("#")}
+        spec = (project / "docs/agents/architecture-verification.md").read_text()
+        documented = set(re.findall(r"^\| `(\w+Rule)` ", spec, re.M))
+        assert registered == documented, f"registered {registered} but the spec documents {documented}"
+        for guide in ("AGENTS.md", "README.md"):
+            assert "](docs/agents/architecture-verification.md)" in (project / guide).read_text(), guide
         answers = yaml.safe_load((project / ".copier-answers.yml").read_text())
         assert answers["project_name"] == "test-automation", answers
         assert answers["_src_path"], "answers must record the template source"
@@ -109,6 +167,7 @@ def validate(static: bool) -> None:
                  defaults=True, vcs_ref="HEAD")
         base_steps = custom / "src/main/java/dev/quokkify/marketdesk/step/BaseSteps.java"
         assert base_steps.read_text().startswith("package dev.quokkify.marketdesk.step;"), base_steps
+        assert "architecture.packages=dev.quokkify.marketdesk" in (custom / "gradle.properties").read_text()
         for index, bad in enumerate((
             {"project_name": "-bad name"},
             {"package_root": "Dev.Quokkify"},
@@ -127,6 +186,9 @@ def validate(static: bool) -> None:
 
         if not static:
             run(["./gradlew", "--no-daemon", *GRADLE_TASKS], project)
+            planned = subprocess.run(["./gradlew", "--no-daemon", "-q", "check", "--dry-run"], cwd=project,
+                                     check=True, capture_output=True, text=True).stdout
+            assert ":verifyArchitecture" in planned, "check must run verifyArchitecture"
 
         shutil.rmtree(project / ".gradle", ignore_errors=True)
         shutil.rmtree(project / "build", ignore_errors=True)
@@ -157,6 +219,7 @@ def validate(static: bool) -> None:
                 f"{name} must be refreshed by update"
             )
         assert (project / "added-by-update.txt").is_file(), "new template files must be added"
+        validate_gate_adoption(temporary)
     print("java-test-automation-template validation: OK" + (" (static)" if static else " (with Gradle)"))
 
 
