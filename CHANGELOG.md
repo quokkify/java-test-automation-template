@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.1.0](https://github.com/quokkify/java-test-automation-template/compare/v1.0.0...v1.1.0) (2026-10-05)
+
+<!-- project-toolkit:rich-block:start -->
+<!-- project-toolkit:rich-release-notes pr=6 -->
+### 💡 Usage Examples
+```sh
+copier copy --vcs-ref <tag> gh:quokkify/java-test-automation-template test-automation \
+  -d package_root=dev.quokkify -d package_name=marketdesk
+# → src/main/java/dev/quokkify/marketdesk/{config,model,service,helper,verification,step}
+#   src/test/java/dev/quokkify/marketdesk/test
+```
+
+### 🔄 Migration
+Run `copier update`. When it asks for `package_root`/`package_name`, answer with your existing base package. Delete the starter files you do not need, and move your classes into the generated packages. The template README covers this. Unmodified files of the old `example` starter and `CLAUDE.md` are removed by the update.
+<!-- project-toolkit:rich-block:end -->
+
+### Features
+
+* agent authoring guide and generated package skeleton ([#6](https://github.com/quokkify/java-test-automation-template/issues/6)) ([03cfbd9](https://github.com/quokkify/java-test-automation-template/commit/03cfbd968fa07f3e3ab76fd1434f0b6598354ef7))
+
 ## 1.0.0 (2026-10-04)
 
 
