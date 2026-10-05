@@ -24,15 +24,18 @@ test-automation/
   .gitattributes
   .gitignore
   README.md
+  AGENTS.md      (agent rules: layout, config, q4j docs)
+  CLAUDE.md      (imports AGENTS.md)
   build.gradle
   settings.gradle
   gradlew, gradlew.bat
   gradle/        (scripts, version catalog, wrapper)
-  src/test/      (example test and config)
+  src/main/      (framework: example config)
+  src/test/      (example test)
   tools/         (Checkstyle, SpotBugs)
 ```
 
-Everything except `README.md` is yours after creation; see the generated README.
+Everything except `README.md`, `AGENTS.md`, and `CLAUDE.md` is yours after creation; `copier update` refreshes those three. See the generated README.
 
 ## Update
 

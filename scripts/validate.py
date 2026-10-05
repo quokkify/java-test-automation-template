@@ -18,14 +18,17 @@ GRADLE_TASKS = [
     "spotbugsMain", "spotbugsTest",
 ]
 EXPECTED = [
-    ".copier-answers.yml", ".gitattributes", ".gitignore", "README.md",
+    ".copier-answers.yml", ".gitattributes", ".gitignore", "README.md", "AGENTS.md", "CLAUDE.md",
     "build.gradle", "settings.gradle", "gradlew", "gradlew.bat",
     "gradle/wrapper/gradle-wrapper.jar", "gradle/wrapper/gradle-wrapper.properties",
     "gradle/libs.versions.toml", "gradle/code-analysis.gradle",
     "gradle/compilation.gradle", "gradle/dependencies.gradle", "gradle/tests.gradle",
-    "src/test/java/example/StarterTest.java", "src/test/resources/test.properties",
+    "src/main/java/example/config/StarterConfig.java",
+    "src/main/java/example/config/StarterConfiguration.java",
+    "src/main/resources/starter.properties", "src/test/java/example/StarterTest.java",
     "tools/checkstyle/checkstyle.xml", "tools/spotbugs/excludeFilter.xml",
 ]
+MANAGED = {"README.md", "AGENTS.md", "CLAUDE.md", ".copier-answers.yml"}
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -103,7 +106,7 @@ def validate(static: bool) -> None:
         init_git(project)
         markers: dict[str, bytes] = {}
         for name in EXPECTED:
-            if name in {"README.md", ".copier-answers.yml"}:
+            if name in MANAGED:
                 continue
             marker = b"project-owned fixture content\n"
             (project / name).write_bytes(marker)
@@ -122,9 +125,10 @@ def validate(static: bool) -> None:
         run_update(project, defaults=True, overwrite=True, vcs_ref="v9.9.9")
         for name, marker in markers.items():
             assert (project / name).read_bytes() == marker, f"update replaced {name}"
-        assert "Updated template fixture content" in (project / "README.md").read_text(), (
-            "README must be refreshed by update"
-        )
+        for name in MANAGED - {".copier-answers.yml"}:
+            assert "Updated template fixture content" in (project / name).read_text(), (
+                f"{name} must be refreshed by update"
+            )
         assert (project / "added-by-update.txt").is_file(), "new template files must be added"
     print("java-test-automation-template validation: OK" + (" (static)" if static else " (with Gradle)"))
 
