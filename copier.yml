@@ -12,6 +12,40 @@ project_name:
     Use letters, digits, dot, underscore or dash, starting with a letter or digit.
     {% endif %}
 
+package_root:
+  type: str
+  help: Root Java package, usually your reversed domain (e.g. dev.quokkify, com.acme)
+  default: com.example
+  validator: >-
+    {% set keywords = 'abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null var record yield sealed permits'.split() %}
+    {% if not (package_root | regex_search('^[a-z][a-z0-9_]*(\\.[a-z_][a-z0-9_]*)*$')) %}
+    Use dot-separated lowercase segments, e.g. dev.quokkify.
+    {% elif package_root.split('.') | select('in', keywords) | list %}
+    Package segments must not be Java keywords.
+    {% endif %}
+
+package_name:
+  type: str
+  help: Package segment for this project, appended to the root (e.g. marketdesk)
+  default: "{{ project_name | lower | regex_replace('[^a-z0-9]+', '_') | trim('_') | regex_replace('^(?=[0-9])', 'p_') }}"
+  validator: >-
+    {% set keywords = 'abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null var record yield sealed permits'.split() %}
+    {% if not (package_name | regex_search('^[a-z_][a-z0-9_]*$')) %}
+    Use one lowercase segment: letters, digits, underscore; not starting with a digit.
+    {% elif package_name in keywords %}
+    The package segment must not be a Java keyword.
+    {% endif %}
+
+base_package:
+  type: str
+  default: "{{ package_root }}.{{ package_name }}"
+  when: false
+
+package_path:
+  type: str
+  default: "{{ base_package | replace('.', '/') }}"
+  when: false
+
 _skip_if_exists:
   - .gitattributes
   - .gitignore

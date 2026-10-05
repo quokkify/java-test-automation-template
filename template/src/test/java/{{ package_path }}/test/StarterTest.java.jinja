@@ -1,0 +1,14 @@
+package {{ base_package }}.test;
+
+import {{ base_package }}.config.StarterConfig;
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertFalse;
+
+public class StarterTest extends BaseTest {
+
+  @Test
+  public void readsConfiguration() {
+    assertFalse(StarterConfig.MESSAGE.isBlank());
+  }
+}

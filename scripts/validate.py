@@ -18,14 +18,23 @@ GRADLE_TASKS = [
     "spotbugsMain", "spotbugsTest",
 ]
 EXPECTED = [
-    ".copier-answers.yml", ".gitattributes", ".gitignore", "README.md",
+    ".copier-answers.yml", ".gitattributes", ".gitignore", "README.md", "AGENTS.md",
     "build.gradle", "settings.gradle", "gradlew", "gradlew.bat",
     "gradle/wrapper/gradle-wrapper.jar", "gradle/wrapper/gradle-wrapper.properties",
     "gradle/libs.versions.toml", "gradle/code-analysis.gradle",
     "gradle/compilation.gradle", "gradle/dependencies.gradle", "gradle/tests.gradle",
-    "src/test/java/example/StarterTest.java", "src/test/resources/test.properties",
+    "src/main/resources/starter.properties",
+    *(f"src/main/java/com/example/test_automation/{name}" for name in (
+        "config/package-info.java", "config/StarterConfig.java", "config/StarterConfiguration.java",
+        "model/package-info.java", "service/package-info.java", "helper/package-info.java",
+        "verification/package-info.java", "step/package-info.java", "step/BaseSteps.java",
+    )),
+    *(f"src/test/java/com/example/test_automation/test/{name}" for name in (
+        "package-info.java", "BaseTest.java", "StarterTest.java",
+    )),
     "tools/checkstyle/checkstyle.xml", "tools/spotbugs/excludeFilter.xml",
 ]
+MANAGED = {"README.md", "AGENTS.md", ".copier-answers.yml"}
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -83,17 +92,38 @@ def validate(static: bool) -> None:
         answers = yaml.safe_load((project / ".copier-answers.yml").read_text())
         assert answers["project_name"] == "test-automation", answers
         assert answers["_src_path"], "answers must record the template source"
+        assert answers["package_root"] == "com.example", answers
+        assert answers["package_name"] == "test_automation", answers
+        starter = project / "src/test/java/com/example/test_automation/test/StarterTest.java"
+        assert starter.read_text().startswith("package com.example.test_automation.test;"), starter
 
         named = temporary / "named"
         run_copy(str(source), named, data={"project_name": "qa.suite"}, defaults=True, vcs_ref="HEAD")
         assert 'rootProject.name = "qa.suite"' in (named / "settings.gradle").read_text()
-        try:
-            run_copy(str(source), temporary / "bad", data={"project_name": "-bad name"},
-                     defaults=True, vcs_ref="HEAD")
-        except Exception:
-            pass
-        else:
-            raise AssertionError("invalid project_name accepted")
+        assert (named / "src/main/java/com/example/qa_suite/step/BaseSteps.java").is_file()
+        digits = temporary / "digits"
+        run_copy(str(source), digits, data={"project_name": "123-app"}, defaults=True, vcs_ref="HEAD")
+        assert (digits / "src/main/java/com/example/p_123_app/step/BaseSteps.java").is_file()
+        custom = temporary / "custom"
+        run_copy(str(source), custom, data={"package_root": "dev.quokkify", "package_name": "marketdesk"},
+                 defaults=True, vcs_ref="HEAD")
+        base_steps = custom / "src/main/java/dev/quokkify/marketdesk/step/BaseSteps.java"
+        assert base_steps.read_text().startswith("package dev.quokkify.marketdesk.step;"), base_steps
+        for index, bad in enumerate((
+            {"project_name": "-bad name"},
+            {"package_root": "Dev.Quokkify"},
+            {"package_root": "dev..quokkify"},
+            {"package_name": "market.desk"},
+            {"package_name": "1desk"},
+            {"package_name": "class"},
+            {"package_root": "com.new"},
+        )):
+            try:
+                run_copy(str(source), temporary / f"bad{index}", data=bad, defaults=True, vcs_ref="HEAD")
+            except Exception:
+                pass
+            else:
+                raise AssertionError(f"invalid answer accepted: {bad}")
 
         if not static:
             run(["./gradlew", "--no-daemon", *GRADLE_TASKS], project)
@@ -103,7 +133,7 @@ def validate(static: bool) -> None:
         init_git(project)
         markers: dict[str, bytes] = {}
         for name in EXPECTED:
-            if name in {"README.md", ".copier-answers.yml"}:
+            if name in MANAGED:
                 continue
             marker = b"project-owned fixture content\n"
             (project / name).write_bytes(marker)
@@ -122,9 +152,10 @@ def validate(static: bool) -> None:
         run_update(project, defaults=True, overwrite=True, vcs_ref="v9.9.9")
         for name, marker in markers.items():
             assert (project / name).read_bytes() == marker, f"update replaced {name}"
-        assert "Updated template fixture content" in (project / "README.md").read_text(), (
-            "README must be refreshed by update"
-        )
+        for name in MANAGED - {".copier-answers.yml"}:
+            assert "Updated template fixture content" in (project / name).read_text(), (
+                f"{name} must be refreshed by update"
+            )
         assert (project / "added-by-update.txt").is_file(), "new template files must be added"
     print("java-test-automation-template validation: OK" + (" (static)" if static else " (with Gradle)"))
 
