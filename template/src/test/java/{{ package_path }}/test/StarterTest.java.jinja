@@ -1,8 +1,20 @@
+{#- Mirrors CustomImportOrder in tools/checkstyle/checkstyle.xml: dev.quokkify imports form their own group,
+    other third-party imports share one group in ASCII order. #}
+{%- set own = base_package ~ '.config.StarterConfig' %}
+{%- set testng = 'org.testng.annotations.Test' -%}
 package {{ base_package }}.test;
 
-import {{ base_package }}.config.StarterConfig;
-import org.testng.annotations.Test;
+{% if base_package.startswith('dev.quokkify.') -%}
+import {{ own }};
 
+import {{ testng }};
+{% elif own < testng -%}
+import {{ own }};
+import {{ testng }};
+{% else -%}
+import {{ testng }};
+import {{ own }};
+{% endif %}
 import static org.testng.Assert.assertFalse;
 
 public class StarterTest extends BaseTest {
