@@ -168,6 +168,21 @@ def validate(static: bool) -> None:
         base_steps = custom / "src/main/java/dev/quokkify/marketdesk/step/BaseSteps.java"
         assert base_steps.read_text().startswith("package dev.quokkify.marketdesk.step;"), base_steps
         assert "architecture.packages=dev.quokkify.marketdesk" in (custom / "gradle.properties").read_text()
+        # Checkstyle's CustomImportOrder puts dev.quokkify in its own group and sorts other third-party
+        # imports together, so the starter imports depend on the base package.
+        late = temporary / "late"
+        run_copy(str(source), late, data={"package_root": "org.zeta", "package_name": "suite"},
+                 defaults=True, vcs_ref="HEAD")
+        imports = {
+            custom / "src/test/java/dev/quokkify/marketdesk/test/StarterTest.java":
+                "import dev.quokkify.marketdesk.config.StarterConfig;\n\nimport org.testng.annotations.Test;\n",
+            late / "src/test/java/org/zeta/suite/test/StarterTest.java":
+                "import org.testng.annotations.Test;\nimport org.zeta.suite.config.StarterConfig;\n",
+            project / "src/test/java/com/example/test_automation/test/StarterTest.java":
+                "import com.example.test_automation.config.StarterConfig;\nimport org.testng.annotations.Test;\n",
+        }
+        for starter_test, expected in imports.items():
+            assert expected in starter_test.read_text(), f"{starter_test} imports break CustomImportOrder"
         for index, bad in enumerate((
             {"project_name": "-bad name"},
             {"package_root": "Dev.Quokkify"},
@@ -189,6 +204,8 @@ def validate(static: bool) -> None:
             planned = subprocess.run(["./gradlew", "--no-daemon", "-q", "check", "--dry-run"], cwd=project,
                                      check=True, capture_output=True, text=True).stdout
             assert ":verifyArchitecture" in planned, "check must run verifyArchitecture"
+            for variant in (custom, late):
+                run(["./gradlew", "--no-daemon", "checkstyleMain", "checkstyleTest"], variant)
 
         shutil.rmtree(project / ".gradle", ignore_errors=True)
         shutil.rmtree(project / "build", ignore_errors=True)
