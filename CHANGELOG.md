@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/quokkify/java-test-automation-template/compare/v1.0.0...v1.1.0) (2026-10-05)
+
+
+### Features
+
+* agent authoring guide and generated package skeleton ([#6](https://github.com/quokkify/java-test-automation-template/issues/6)) ([03cfbd9](https://github.com/quokkify/java-test-automation-template/commit/03cfbd968fa07f3e3ab76fd1434f0b6598354ef7))
+
 ## 1.0.0 (2026-10-04)
 
 
