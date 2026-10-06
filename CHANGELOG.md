@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/quokkify/java-test-automation-template/compare/v1.1.0...v1.2.0) (2026-10-05)
+
+<!-- project-toolkit:rich-block:start -->
+<!-- project-toolkit:rich-release-notes pr=8 -->
+### ✨ Highlights
+Projects generated from the template verify their architecture on every `./gradlew check`. `AGENTS.md` points coding agents to a spec that tells them how to adopt the gate in older projects and how to fix each finding.
+
+### 🔄 Migration
+Existing projects get the spec, `gradle/architecture.gradle`, `tools/architecture/` and, if missing, `gradle.properties` with `copier update`. To finish adoption, an agent or a person follows section 3 of `docs/agents/architecture-verification.md`: raise q4j to 0.9.0, add the catalog entries, and apply the script from `build.gradle`.
+<!-- project-toolkit:rich-block:end -->
+
+### Features
+
+* enable q4j architecture verification ([#8](https://github.com/quokkify/java-test-automation-template/issues/8)) ([1d53c1a](https://github.com/quokkify/java-test-automation-template/commit/1d53c1a86ac9c48ba872c7b69f98c29fbf3ad0d4))
+
+
+### Bug Fixes
+
+* order starter test imports for every base package ([#9](https://github.com/quokkify/java-test-automation-template/issues/9)) ([abca592](https://github.com/quokkify/java-test-automation-template/commit/abca59219b41181f97f5947abb454c6e7203c0fd))
+
 ## [1.1.0](https://github.com/quokkify/java-test-automation-template/compare/v1.0.0...v1.1.0) (2026-10-05)
 
 <!-- project-toolkit:rich-block:start -->
