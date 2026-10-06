@@ -37,8 +37,10 @@ EXPECTED = [
     "tools/checkstyle/checkstyle.xml", "tools/spotbugs/excludeFilter.xml",
     "tools/architecture/log4j2.xml",
     "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule",
+    "src/test/resources/META-INF/services/org.testng.ITestNGListener", "docs/agents/test-execution.md",
 ]
-MANAGED = {"README.md", "AGENTS.md", "docs/agents/architecture-verification.md", ".copier-answers.yml"}
+MANAGED = {"README.md", "AGENTS.md", "docs/agents/architecture-verification.md", "docs/agents/test-execution.md",
+           ".copier-answers.yml"}
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -71,6 +73,7 @@ def snapshot(directory: Path) -> dict[Path, bytes]:
 
 
 ADOPTION = [
+    "src/test/resources/META-INF/services/org.testng.ITestNGListener", "docs/agents/test-execution.md",
     "gradle.properties", "gradle/architecture.gradle", "docs/agents/architecture-verification.md",
     "tools/architecture/log4j2.xml",
     "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule",
@@ -145,8 +148,17 @@ def validate(static: bool) -> None:
         spec = (project / "docs/agents/architecture-verification.md").read_text()
         documented = set(re.findall(r"^\| `(\w+Rule)` ", spec, re.M))
         assert registered == documented, f"registered {registered} but the spec documents {documented}"
+        listeners = (project / "src/test/resources/META-INF/services/org.testng.ITestNGListener").read_text().split()
+        for listener in ("dev.quokkify.listener.lifecycle.SuiteListener", "dev.quokkify.listener.retry.RetryListener"):
+            assert listener in listeners, f"{listener} must be registered"
+        assert re.search(r"^q4j-testng = ", catalog, re.M), "catalog must declare q4j-testng"
+        assert "implementation libs.q4j.testng" in (project / "gradle/dependencies.gradle").read_text()
+        for java_file in (project / "src").rglob("*.java"):
+            assert not re.search(r"groups *=", java_file.read_text()), f"{java_file} selects tests by TestNG group"
         for guide in ("AGENTS.md", "README.md"):
-            assert "](docs/agents/architecture-verification.md)" in (project / guide).read_text(), guide
+            text = (project / guide).read_text()
+            assert "](docs/agents/test-execution.md)" in text, guide
+            assert "](docs/agents/architecture-verification.md)" in text, guide
         answers = yaml.safe_load((project / ".copier-answers.yml").read_text())
         assert answers["project_name"] == "test-automation", answers
         assert answers["_src_path"], "answers must record the template source"
@@ -201,6 +213,9 @@ def validate(static: bool) -> None:
 
         if not static:
             run(["./gradlew", "--no-daemon", *GRADLE_TASKS], project)
+            tested = subprocess.run(["./gradlew", "--no-daemon", "--console=plain", "test", "--rerun"], cwd=project,
+                                    check=True, capture_output=True, text=True).stdout
+            assert "> Concurrency > " in tested, "SuiteListener must run the tests in its parallel block"
             planned = subprocess.run(["./gradlew", "--no-daemon", "-q", "check", "--dry-run"], cwd=project,
                                      check=True, capture_output=True, text=True).stdout
             assert ":verifyArchitecture" in planned, "check must run verifyArchitecture"

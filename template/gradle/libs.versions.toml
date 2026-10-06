@@ -7,6 +7,7 @@ spotbugs-plugin = "6.5.12"
 
 [libraries]
 q4j-config = { module = "dev.quokkify:config", version.ref = "q4j" }
+q4j-testng = { module = "dev.quokkify:testng", version.ref = "q4j" }
 q4j-architecture = { module = "dev.quokkify:architecture", version.ref = "q4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 log4j-slf4j2-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
