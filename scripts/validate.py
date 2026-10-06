@@ -153,6 +153,8 @@ def validate(static: bool) -> None:
             assert listener in listeners, f"{listener} must be registered"
         assert re.search(r"^q4j-testng = ", catalog, re.M), "catalog must declare q4j-testng"
         assert "implementation libs.q4j.testng" in (project / "gradle/dependencies.gradle").read_text()
+        for gradle_file in (project / "gradle").glob("*.gradle"):
+            assert not re.search(r"includeGroups|excludeGroups", gradle_file.read_text()), gradle_file
         for java_file in (project / "src").rglob("*.java"):
             assert not re.search(r"groups *=", java_file.read_text()), f"{java_file} selects tests by TestNG group"
         for guide in ("AGENTS.md", "README.md"):

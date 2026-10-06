@@ -21,14 +21,18 @@ The project does not write its own `testng.xml`, thread pools, or retry logic.
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | T1  | `gradle/libs.versions.toml` declares `q4j-testng` (`dev.quokkify:testng`, `version.ref = "q4j"`), and `gradle/dependencies.gradle` declares it as `implementation`.                                              | read both files                                                                        |
 | T2  | `src/test/resources/META-INF/services/org.testng.ITestNGListener` lists `dev.quokkify.listener.lifecycle.SuiteListener` and `dev.quokkify.listener.retry.RetryListener`.                                          | read the file                                                                          |
-| T3  | No `testng.xml` suite file, no `parallel` or `threadCount` in Gradle, and no `@Listeners` for these two listeners. Thread count and retries are set in `src/test/resources/testng.properties` or the environment. | `git ls-files '*testng*.xml'` prints nothing; `grep -rn parallel gradle` prints nothing |
-| T4  | Test sets are selected by package or by `@TestGroup`, never by TestNG groups. Neither `@Test(groups = ...)` nor Gradle `includeGroups`/`excludeGroups` appears.                                                  | `grep -rnE 'groups *=|includeGroups|excludeGroups' src/test gradle` prints nothing     |
+| T3  | No `testng.xml` suite file, no `parallel` or `threadCount` in Gradle, and no `@Listeners` for these two listeners. Thread count and retries come from the environment or an optional `src/test/resources/testng.properties`. | `git ls-files '*testng*.xml'` prints nothing; `grep -rn parallel gradle` prints nothing |
+| T4  | Test sets are selected by package, never by TestNG groups: no `@Test(groups = ...)`, no Gradle `includeGroups`/`excludeGroups`. | `grep -rnE '@Test\([^)]*groups *=' src/test` and `grep -rnE 'includeGroups\|excludeGroups' gradle` print nothing |
 | T5  | A test that shares state with other tests, or needs exclusive use of an external resource, carries `@SingleThread`. Steps, services and verifications keep no per-test mutable state.                          | review                                                                                 |
 | T6  | Gradle prints the generated suite: test names start with `Default suite > Concurrency >` or `Default suite > Sequential >` (or the `SUITE_NAME` you set).                                                     | `./gradlew test` output                                                                |
+| T7  | `@Test` sits on each test method, declared in the concrete test class. | review: no class-level `@Test`, no `@Test` methods inherited from a base class |
 
 Why T4: `SuiteListener` builds new `<test>` blocks from the selected classes and keeps only their methods.
 The TestNG group filter that Gradle or a `@Test(groups)` attribute sets is not copied into them, so a group
 split silently runs every test.
+
+Why T7: `SuiteListener` collects the methods a class declares itself that carry `@Test`. A class-level `@Test`
+or a test method inherited from a base class is never run, and nothing reports it.
 
 ## 3. Adoption procedure
 
@@ -45,8 +49,9 @@ changed.
 4. Replace TestNG groups (T4):
    - A Gradle task that runs one test set selects it by package:
      `include '**/test/api/**'` in that task, and `exclude '**/test/api/**'` in the task that must skip it.
-   - A test set chosen at run time gets `@TestGroup("name")`. It is then run with `TEST_GROUP=name` and
-     `SingleGroupListener`, which goes before `SuiteListener` in the SPI file.
+   - Choosing a test set at run time with `@TestGroup("name")` and `TEST_GROUP=name` needs `SingleGroupListener`
+     in the SPI file, listed before `SuiteListener`. TestNG does not guarantee the order of suite listeners, so
+     confirm with T6 that only that set runs and that `@SingleThread` tests stay in `Sequential`.
    - Remove `groups = ...` from `@Test`.
 5. A Gradle `Test` task whose package filter leaves it with no tests to run fails in Gradle 9. If that is
    expected, for example a `test` task while the project has no unit tests yet, set
@@ -56,7 +61,8 @@ changed.
 
 ## 4. Settings
 
-`TestNGExtension` reads these keys from the environment or `src/test/resources/testng.properties`.
+`TestNGExtension` reads these keys from the environment or an optional `src/test/resources/testng.properties`
+(create it only to change a default).
 
 | Key                               | Default         | Effect                                                         |
 | --------------------------------- | --------------- | -------------------------------------------------------------- |
@@ -66,9 +72,11 @@ changed.
 | `SUITE_NAME`                      | `Default suite` | Suite name in reports                                          |
 | `TEST_GROUP`                      | unset           | With `SingleGroupListener`, run only that `@TestGroup`         |
 | `TEST_PARALLEL_MODE`              | `METHODS`       | Parallel mode of `Concurrency` (environment variable only)     |
+| `DATA_PROVIDER_THREAD_COUNT`      | TestNG default  | Data provider threads (environment variable only)              |
+| `EXECUTION_MODE`                  | `LOCAL`         | `LOCAL`, `CI` or `DIND`, for code that branches on it          |
 
 ## 5. Acceptance criteria
 
-- [ ] T1 to T5 hold.
+- [ ] T1 to T5 and T7 hold.
 - [ ] Every Gradle test task runs and prints `Concurrency` or `Sequential` in its test names (T6).
 - [ ] A task meant to skip a test set does not run it. Check the test names it prints.
