@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/quokkify/java-test-automation-template/compare/v1.2.0...v1.3.0) (2026-10-06)
+
+
+### Features
+
+* run tests through q4j TestNG extensions and name HTTP statuses ([#11](https://github.com/quokkify/java-test-automation-template/issues/11)) ([52493f9](https://github.com/quokkify/java-test-automation-template/commit/52493f952c9750999173deec6b9718bff187e36d))
+
 ## [1.2.0](https://github.com/quokkify/java-test-automation-template/compare/v1.1.0...v1.2.0) (2026-10-05)
 
 <!-- project-toolkit:rich-block:start -->
