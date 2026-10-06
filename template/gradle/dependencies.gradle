@@ -4,6 +4,7 @@ repositories {
 
 dependencies {
     implementation libs.q4j.config
+    implementation libs.q4j.testng
     testImplementation libs.testng
     checkstyle libs.checkstyle
 }
