@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import re
 import subprocess
@@ -38,9 +39,10 @@ EXPECTED = [
     "tools/architecture/log4j2.xml",
     "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule",
     "src/test/resources/META-INF/services/org.testng.ITestNGListener", "docs/agents/test-execution.md",
+    "gradle/allure.gradle", "docs/agents/test-reporting.md",
 ]
 MANAGED = {"README.md", "AGENTS.md", "docs/agents/architecture-verification.md", "docs/agents/test-execution.md",
-           ".copier-answers.yml"}
+           "docs/agents/test-reporting.md", ".copier-answers.yml"}
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -73,6 +75,7 @@ def snapshot(directory: Path) -> dict[Path, bytes]:
 
 
 ADOPTION = [
+    "gradle/allure.gradle", "docs/agents/test-reporting.md",
     "src/test/resources/META-INF/services/org.testng.ITestNGListener", "docs/agents/test-execution.md",
     "gradle.properties", "gradle/architecture.gradle", "docs/agents/architecture-verification.md",
     "tools/architecture/log4j2.xml",
@@ -109,6 +112,39 @@ def validate_gate_adoption(temporary: Path) -> None:
     for name in ADOPTION:
         assert (project / name).is_file(), f"update must add the missing {name}"
     assert (project / "build.gradle").read_bytes() == build, "update must leave build.gradle to the project"
+
+
+STEP_PROBE = """package com.example.test_automation.test;
+
+import io.qameta.allure.Step;
+import org.testng.annotations.Test;
+
+public class AllureStepProbeTest {
+
+  @Test
+  public void recordsSteps() {
+    probe();
+  }
+
+  @Step("probe step")
+  public void probe() {
+  }
+}
+"""
+
+
+def assert_allure_steps(project: Path) -> None:
+    """Run a throwaway test with a @Step method and require the step in its Allure result."""
+    probe = project / "src/test/java/com/example/test_automation/test/AllureStepProbeTest.java"
+    probe.write_text(STEP_PROBE)
+    try:
+        run(["./gradlew", "--no-daemon", "-q", "clean", "test", "--tests", "*AllureStepProbeTest"], project)
+        results = list((project / "build/allure-results").glob("*-result.json"))
+        assert results, "tests must write Allure results to build/allure-results"
+        steps = [step["name"] for result in results for step in json.loads(result.read_text()).get("steps", [])]
+        assert "probe step" in steps, f"the AspectJ agent must weave @Step into results, found {steps}"
+    finally:
+        probe.unlink()
 
 
 def validate(static: bool) -> None:
@@ -160,7 +196,11 @@ def validate(static: bool) -> None:
         for guide in ("AGENTS.md", "README.md"):
             text = (project / guide).read_text()
             assert "](docs/agents/test-execution.md)" in text, guide
+            assert "](docs/agents/test-reporting.md)" in text, guide
             assert "](docs/agents/architecture-verification.md)" in text, guide
+        assert "apply from: 'gradle/allure.gradle'" in (project / "build.gradle").read_text()
+        assert re.search(r"^aspectj-weaver = ", catalog, re.M), "catalog must declare aspectj-weaver"
+        assert "allure-results/" in (project / ".gitignore").read_text().split()
         answers = yaml.safe_load((project / ".copier-answers.yml").read_text())
         assert answers["project_name"] == "test-automation", answers
         assert answers["_src_path"], "answers must record the template source"
@@ -218,6 +258,7 @@ def validate(static: bool) -> None:
             tested = subprocess.run(["./gradlew", "--no-daemon", "--console=plain", "test", "--rerun"], cwd=project,
                                     check=True, capture_output=True, text=True).stdout
             assert "> Concurrency > " in tested, "SuiteListener must run the tests in its parallel block"
+            assert_allure_steps(project)
             planned = subprocess.run(["./gradlew", "--no-daemon", "-q", "check", "--dry-run"], cwd=project,
                                      check=True, capture_output=True, text=True).stdout
             assert ":verifyArchitecture" in planned, "check must run verifyArchitecture"
