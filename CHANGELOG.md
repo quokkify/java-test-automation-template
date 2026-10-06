@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.4.0](https://github.com/quokkify/java-test-automation-template/compare/v1.3.0...v1.4.0) (2026-10-06)
+
+<!-- project-toolkit:rich-block:start -->
+<!-- project-toolkit:rich-release-notes pr=13 -->
+### ✨ Highlights
+Projects generated from the template publish every test to Allure with its q4j steps. The agent spec says how CI must upload the results.
+
+### 🔄 Migration
+`copier update` adds `gradle/allure.gradle` and the spec. To finish adoption, follow section 3 of `docs/agents/test-reporting.md`:
+- add the `aspectj` catalog entries;
+- apply `gradle/allure.gradle`;
+- ignore `allure-results/`;
+- upload `build/allure-results` from CI.
+<!-- project-toolkit:rich-block:end -->
+
+### Features
+
+* publish every test to Allure with its steps ([#13](https://github.com/quokkify/java-test-automation-template/issues/13)) ([1da2229](https://github.com/quokkify/java-test-automation-template/commit/1da2229967e403bbfbffc449b2e2038104ecf896))
+
 ## [1.3.0](https://github.com/quokkify/java-test-automation-template/compare/v1.2.0...v1.3.0) (2026-10-06)
 
 <!-- project-toolkit:rich-block:start -->
