@@ -2,6 +2,17 @@
 
 ## [1.3.0](https://github.com/quokkify/java-test-automation-template/compare/v1.2.0...v1.3.0) (2026-10-06)
 
+<!-- project-toolkit:rich-block:start -->
+<!-- project-toolkit:rich-release-notes pr=11 -->
+### ✨ Highlights
+Generated projects run their tests in parallel through the q4j TestNG extensions, with retries. Agents get a spec for test execution and must use `HttpStatus` constants for status codes.
+
+### 🔄 Migration
+`copier update` adds `org.testng.ITestNGListener` and the spec when they are missing. To finish adoption, follow section 3 of `docs/agents/test-execution.md`:
+- add `q4j-testng`;
+- replace TestNG groups with package `include`/`exclude` or `@TestGroup`;
+- replace status literals with `HttpStatus` constants.
+<!-- project-toolkit:rich-block:end -->
 
 ### Features
 
