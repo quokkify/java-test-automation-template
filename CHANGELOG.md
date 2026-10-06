@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/quokkify/java-test-automation-template/compare/v1.3.0...v1.4.0) (2026-10-06)
+
+
+### Features
+
+* publish every test to Allure with its steps ([#13](https://github.com/quokkify/java-test-automation-template/issues/13)) ([1da2229](https://github.com/quokkify/java-test-automation-template/commit/1da2229967e403bbfbffc449b2e2038104ecf896))
+
 ## [1.3.0](https://github.com/quokkify/java-test-automation-template/compare/v1.2.0...v1.3.0) (2026-10-06)
 
 <!-- project-toolkit:rich-block:start -->
