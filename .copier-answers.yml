@@ -1,7 +1,7 @@
-_commit: v3.0.1
+_commit: v3.0.3
 _src_path: https://github.com/quokkify/ci-kit.git
 project_name: Java Test Automation Template
-toolkit_version: v3.0.1
+toolkit_version: v3.0.3
 components: []
 docker: false
 codeql: true
