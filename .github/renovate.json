@@ -7,5 +7,20 @@
   ],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
-  "semanticCommitScope": "deps"
+  "semanticCommitScope": "deps",
+  "packageRules": [
+    {
+      "description": "Create and merge non-major q4j updates of the generated project immediately, without a stability wait or dashboard approval, as fix commits so release-please ships them; major updates keep the shared manual approval because they may need a migration.",
+      "matchDatasources": ["maven"],
+      "matchPackageNames": ["/^dev\\.quokkify:/"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "q4j",
+      "groupSlug": "q4j",
+      "semanticCommitType": "fix",
+      "minimumReleaseAge": null,
+      "dependencyDashboardApproval": false,
+      "prCreation": "immediate",
+      "automerge": true
+    }
+  ]
 }
