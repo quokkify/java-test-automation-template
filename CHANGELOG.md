@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.1](https://github.com/quokkify/java-test-automation-template/compare/v1.4.0...v1.4.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** update q4j to v0.10.0 ([#18](https://github.com/quokkify/java-test-automation-template/issues/18)) ([f0685b9](https://github.com/quokkify/java-test-automation-template/commit/f0685b960f53d33ba12ea736af8a5cf862ccc71b))
+* **deps:** update q4j to v0.11.0 ([#21](https://github.com/quokkify/java-test-automation-template/issues/21)) ([20cae04](https://github.com/quokkify/java-test-automation-template/commit/20cae0455982eacd86c058647e15d19ed3e09d7a))
+* **deps:** update q4j to v0.12.0 ([#23](https://github.com/quokkify/java-test-automation-template/issues/23)) ([2d0f3de](https://github.com/quokkify/java-test-automation-template/commit/2d0f3de675737c0148fc01ac5d964faf3aed370d))
+* **deps:** update q4j to v0.12.1 ([#24](https://github.com/quokkify/java-test-automation-template/issues/24)) ([b460807](https://github.com/quokkify/java-test-automation-template/commit/b4608074027a1fd40bfae845d4de4a4f34bec4ce))
+
 ## [1.4.0](https://github.com/quokkify/java-test-automation-template/compare/v1.3.0...v1.4.0) (2026-10-06)
 
 <!-- project-toolkit:rich-block:start -->
