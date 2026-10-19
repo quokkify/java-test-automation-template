@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - run: pip install PyYAML==6.0.3 copier==9.18.2
       - run: python scripts/validate.py --static
 
@@ -35,6 +35,6 @@ jobs:
           java-version: "21"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - run: pip install PyYAML==6.0.3 copier==9.18.2
       - run: python scripts/validate.py
