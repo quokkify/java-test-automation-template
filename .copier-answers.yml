@@ -19,4 +19,5 @@ renovate_presets:
   - java
   - github-actions
 module: legacy
-handed_off: []
+handed_off:
+  - validate
