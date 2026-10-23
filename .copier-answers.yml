@@ -1,7 +1,7 @@
-_commit: v3.10.0
+_commit: v3.11.0
 _src_path: https://github.com/quokkify/ci-kit.git
 project_name: Java Test Automation Template
-toolkit_version: v3.10.0
+toolkit_version: v3.11.0
 components: []
 docker: false
 codeql: true
@@ -26,3 +26,7 @@ handed_off:
   - release
   - allure
   - renovate
+codeql_aggregate: false
+gitleaks_job_name: gitleaks
+gitleaks_scan: history
+gitleaks_aggregate: false
