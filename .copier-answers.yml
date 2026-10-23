@@ -21,3 +21,8 @@ renovate_presets:
 module: legacy
 handed_off:
   - validate
+  - base
+  - security
+  - release
+  - allure
+  - renovate
