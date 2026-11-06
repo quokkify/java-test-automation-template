@@ -64,9 +64,11 @@ Each requirement can be checked with a file read or a command, run from the proj
 | S13 | CI runs `:seed:standTest` in its own job against a stand, not in the job of the end-to-end tests and never concurrently against one stand, and uploads `seed/build/allure-results` (section 7). | read the CI configuration |
 
 Why S4 needs care: `seed/gradle/seed.versions.toml` repeats the `q4j` version of the root catalog, and the two
-must stay equal. Renovate updates them in one pull request only when it groups the q4j artifacts. The shared
-[quokkify/renovate-presets](https://github.com/quokkify/renovate-presets) is getting such a group; until a preset
-the project extends has it, add this rule to the project's Renovate configuration:
+must stay equal. Renovate updates them in one pull request only when it groups the q4j artifacts. Add the opt-in
+preset `github>quokkify/renovate-presets//presets/gradle/q4j` to `extends` of the project's Renovate
+configuration once quokkify/renovate-presets releases it
+([quokkify/renovate-presets#74](https://github.com/quokkify/renovate-presets/pull/74)). Until then, add this rule
+instead, and replace it with the preset after the release:
 
 ```json
 {
