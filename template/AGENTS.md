@@ -25,7 +25,7 @@ A class in the "Use or compose" column goes into your own steps class as a field
 
 For a module that is not listed here, look up its path in the [module catalog](https://github.com/quokkify/q4j#-module-catalog) and the `settings.gradle` of q4j.
 
-Architecture verification has its own spec: [docs/agents/architecture-verification.md](docs/agents/architecture-verification.md). Read it when `build.gradle` does not apply `gradle/architecture.gradle`, because the gate is then not wired yet and the spec tells you how to add it. Read it also when `verifyArchitecture` reports a finding.
+Architecture verification has its own spec: [docs/agents/architecture-verification.md](docs/agents/architecture-verification.md). Read it when `build.gradle` does not apply `libs.plugins.archgate`, because the gate is then not wired yet and the spec tells you how to add it. Read it also when `archgateCheck` reports a finding.
 
 ## 2. Where code goes
 
@@ -147,7 +147,7 @@ UI and database tests follow the same layers. For UI, write a `<Name>Page`, a `<
 
 ## 5. Done checklist
 
-- [ ] `./gradlew assemble testClasses checkstyleMain checkstyleTest spotbugsMain spotbugsTest verifyArchitecture` passes.
+- [ ] `./gradlew assemble testClasses checkstyleMain checkstyleTest spotbugsMain spotbugsTest archgateCheck` passes.
 - [ ] `grep -rnE 'RestAssured|System\.(getProperty|getenv)' src/test/java` prints nothing.
 - [ ] `grep -rniE 'status[a-z]*\(.*\b[1-5][0-9]{2}\b' src` prints nothing (rule 10).
 - [ ] `grep -rnE '@Test\([^)]*groups *=|includeGroups|excludeGroups' src/test gradle` prints nothing, and test output names show `Concurrency` or `Sequential` (rule 9).

@@ -44,6 +44,11 @@ From inside the generated folder:
 copier update --vcs-ref "$(gh release view --repo quokkify/java-test-automation-template --json tagName --jq .tagName)"
 ```
 
+An update across a release with a Copier migration stops and asks for `--trust`. Add the option to run the
+migration; the script lives in `migrations/` of this repository. The 2.0.0 migration removes the q4j
+architecture gate; then follow section 3 of the generated `docs/agents/architecture-verification.md` to
+enable the ArchGate plugin that replaces it.
+
 ## Develop the template
 
 ```sh

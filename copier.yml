@@ -57,3 +57,8 @@ _skip_if_exists:
   - gradle/**
   - src/**
   - tools/**
+
+# A migration runs once, on a `copier update` that crosses its version; Copier asks for `--trust` to run it.
+_migrations:
+  - version: "2.0.0"
+    command: ["{{ _copier_python }}", "{{ _copier_conf.src_path }}/migrations/remove_architecture_gate.py"]
