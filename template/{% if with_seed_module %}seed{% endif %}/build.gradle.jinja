@@ -1,0 +1,54 @@
+// The template manages this file, and `copier update` replaces it. It wires the seed/ subproject into the
+// project's own build scripts; put seed dependencies in seed/gradle/dependencies.gradle.
+// See docs/agents/seed-module.md.
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+    id 'com.github.spotbugs'
+    id 'dev.quokkify.archgate'
+}
+
+apply from: rootProject.file('gradle/compilation.gradle')
+apply from: rootProject.file('gradle/code-analysis.gradle')
+apply from: rootProject.file('gradle/tests.gradle')
+apply from: rootProject.file('gradle/allure.gradle')
+apply from: 'gradle/dependencies.gradle'
+
+// The shared scripts resolve tool configs against the applying project; seed/ uses the root ones.
+checkstyle {
+    configDirectory = rootProject.file('tools/checkstyle')
+}
+
+spotbugs {
+    excludeFilter = rootProject.file('tools/spotbugs/excludeFilter.xml')
+}
+
+application {
+    mainClass = '{{ base_package }}.seed.cli.SeedCli'
+}
+
+// Unit tests run in `test`, which `check` runs. Tests that change the stand are named *StandTest and run
+// only in `standTest`, a separate CI job.
+def standTests = '**/*StandTest.class'
+
+tasks.named('test') {
+    exclude standTests
+}
+
+tasks.register('standTest', Test) {
+    description = 'Runs the *StandTest classes, which change the stand.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include standTests
+    failOnNoDiscoveredTests = false
+}
+
+// ArchGate runs the rules listed in
+// src/test/resources/META-INF/services/dev.quokkify.archgate.api.ArchitectureRule as `archgateCheck`,
+// which `check` runs. See docs/agents/architecture-verification.md.
+archgate {
+    rootPackage = '{{ base_package }}.seed'
+    failOn = 'ERROR'
+}

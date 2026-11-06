@@ -1,0 +1,37 @@
+package {{ base_package }}.seed.scenario;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import dev.quokkify.util.JsonConverter;
+
+/**
+ * Reads and writes the files of the seed module as JSON, through the q4j {@code JsonConverter}.
+ */
+public final class SeedJson {
+
+  private SeedJson() {
+  }
+
+  public static void write(Object value, Path file) {
+    try {
+      Path parent = file.toAbsolutePath().getParent();
+      if (parent != null) {
+        Files.createDirectories(parent);
+      }
+      Files.writeString(file, JsonConverter.toJson(value) + "\n", StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Cannot write " + file, e);
+    }
+  }
+
+  public static <T> T read(Path file, Class<T> type) {
+    if (!Files.isRegularFile(file)) {
+      throw new IllegalStateException("Missing " + file + ". Run the command that writes it first, see docs/agents/seed-module.md.");
+    }
+    return JsonConverter.fromFile(file.toFile(), type);
+  }
+}

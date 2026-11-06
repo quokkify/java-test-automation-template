@@ -1,0 +1,9 @@
+[versions]
+datafaker = "2.7.0"
+# Must stay equal to `q4j` in gradle/libs.versions.toml. Group dev.quokkify updates in Renovate so that
+# both change in one pull request; see docs/agents/seed-module.md, section 3.
+q4j = "0.12.2"
+
+[libraries]
+datafaker = { module = "net.datafaker:datafaker", version.ref = "datafaker" }
+q4j-jackson-json = { module = "dev.quokkify:jackson-json", version.ref = "q4j" }

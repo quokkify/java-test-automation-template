@@ -36,6 +36,11 @@ package_name:
     The package segment must not be a Java keyword.
     {% endif %}
 
+with_seed_module:
+  type: bool
+  help: Add the optional seed/ Gradle subproject for synthetic test data (Datafaker generator, loader, stand checkpoints)
+  default: false
+
 base_package:
   type: str
   default: "{{ package_root }}.{{ package_name }}"
@@ -49,7 +54,7 @@ package_path:
 _skip_if_exists:
   - .gitattributes
   - .gitignore
-  - build.gradle
+  - /build.gradle
   - settings.gradle
   - gradle.properties
   - gradlew
@@ -57,6 +62,8 @@ _skip_if_exists:
   - gradle/**
   - src/**
   - tools/**
+  - seed/gradle/**
+  - seed/src/**
 
 # A migration runs once, on a `copier update` that crosses its version; Copier asks for `--trust` to run it.
 _migrations:

@@ -1,0 +1,27 @@
+package {{ base_package }}.seed.files;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
+
+public class PngFixtureTest {
+
+  @Test
+  public void sameKeyGivesSameBytes() {
+    assertEquals(PngFixture.render("syn-1-0"), PngFixture.render("syn-1-0"));
+    assertNotEquals(PngFixture.render("syn-1-0"), PngFixture.render("syn-1-1"));
+  }
+
+  @Test
+  public void rendersAReadablePng() throws IOException {
+    BufferedImage image = ImageIO.read(new ByteArrayInputStream(PngFixture.render("syn-1-0")));
+    assertEquals(image.getWidth(), PngFixture.SIZE);
+    assertEquals(image.getHeight(), PngFixture.SIZE);
+  }
+}

@@ -1,0 +1,61 @@
+package {{ base_package }}.seed.cli;
+
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import {{ base_package }}.config.SeedConfig;
+import {{ base_package }}.seed.generate.SizePreset;
+import {{ base_package }}.seed.load.ScenarioLoader;
+import {{ base_package }}.seed.stand.StandProbe;
+
+/**
+ * Command line entry, for example {@code ./gradlew :seed:run --args='generate --seed 1'}. Defaults come from
+ * {@code SeedConfig}. See docs/agents/seed-module.md.
+ */
+public final class SeedCli {
+
+  static final String SCENARIO_FILE = "scenario.json";
+  static final String CHECKPOINT_FILE = "checkpoint.json";
+  static final String DIFF_FILE = "diff.json";
+  private static final String USAGE = "Usage: generate --seed <number> [--preset small|medium|large] [--dir <path>]"
+    + " | load [--dir <path>] | diff [--dir <path>]";
+
+  private SeedCli() {
+  }
+
+  public static void main(String[] args) {
+    if (args.length == 0) {
+      throw new IllegalArgumentException(USAGE);
+    }
+    Map<String, String> options = options(Arrays.copyOfRange(args, 1, args.length));
+    Path dir = Path.of(options.getOrDefault("dir", SeedConfig.DIR));
+    switch (args[0]) {
+      case "generate" -> new GenerateCommand(dir).run(Long.parseLong(required(options, "seed")),
+        SizePreset.parse(options.getOrDefault("preset", SeedConfig.PRESET)));
+      case "load" -> new LoadCommand(ScenarioLoader.discover(), StandProbe.discover()).run(dir);
+      case "diff" -> new DiffCommand(StandProbe.discover()).run(dir);
+      default -> throw new IllegalArgumentException("Unknown command '" + args[0] + "'. " + USAGE);
+    }
+  }
+
+  private static Map<String, String> options(String[] args) {
+    Map<String, String> options = new HashMap<>();
+    for (int index = 0; index < args.length; index += 2) {
+      if (!args[index].startsWith("--") || index + 1 == args.length) {
+        throw new IllegalArgumentException("Expected --<option> <value> pairs, got '" + args[index] + "'. " + USAGE);
+      }
+      options.put(args[index].substring(2), args[index + 1]);
+    }
+    return options;
+  }
+
+  private static String required(Map<String, String> options, String name) {
+    String value = options.get(name);
+    if (value == null) {
+      throw new IllegalArgumentException("Missing --" + name + ". " + USAGE);
+    }
+    return value;
+  }
+}

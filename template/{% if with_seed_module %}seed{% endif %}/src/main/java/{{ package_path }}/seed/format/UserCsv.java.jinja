@@ -1,0 +1,32 @@
+package {{ base_package }}.seed.format;
+
+import java.util.List;
+
+import {{ base_package }}.seed.scenario.SyntheticUser;
+
+/**
+ * Users in the CSV layout that the application imports. Change it to mirror the real import format.
+ */
+public final class UserCsv {
+
+  static final String HEADER = "id,full_name,email,phone,city";
+
+  private UserCsv() {
+  }
+
+  public static String render(List<SyntheticUser> users) {
+    StringBuilder csv = new StringBuilder(HEADER).append('\n');
+    for (SyntheticUser user : users) {
+      csv.append(String.join(",", field(user.id()), field(user.fullName()), field(user.email()), field(user.phone()),
+        field(user.city()))).append('\n');
+    }
+    return csv.toString();
+  }
+
+  static String field(String value) {
+    if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+      return '"' + value.replace("\"", "\"\"") + '"';
+    }
+    return value;
+  }
+}

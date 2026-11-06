@@ -1,0 +1,25 @@
+package {{ base_package }}.seed.cli;
+
+import java.nio.file.Path;
+
+import {{ base_package }}.seed.checkpoint.Checkpoint;
+import {{ base_package }}.seed.checkpoint.CheckpointDiff;
+import {{ base_package }}.seed.scenario.SeedJson;
+import {{ base_package }}.seed.stand.StandProbe;
+
+/**
+ * {@code diff}: writes what changed on the stand since the checkpoint of the last {@code load}.
+ */
+final class DiffCommand {
+
+  private final StandProbe probe;
+
+  DiffCommand(StandProbe probe) {
+    this.probe = probe;
+  }
+
+  void run(Path dir) {
+    Checkpoint before = SeedJson.read(dir.resolve(SeedCli.CHECKPOINT_FILE), Checkpoint.class);
+    SeedJson.write(CheckpointDiff.between(before, new Checkpoint(probe.capture())), dir.resolve(SeedCli.DIFF_FILE));
+  }
+}

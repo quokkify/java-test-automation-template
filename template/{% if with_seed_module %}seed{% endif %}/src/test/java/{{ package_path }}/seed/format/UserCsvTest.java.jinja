@@ -1,0 +1,22 @@
+package {{ base_package }}.seed.format;
+
+import java.util.List;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+
+public class UserCsvTest {
+
+  @Test
+  public void startsWithTheHeader() {
+    assertEquals(UserCsv.render(List.of()), UserCsv.HEADER + "\n");
+  }
+
+  @Test
+  public void quotesFieldsWithSeparators() {
+    assertEquals(UserCsv.field("plain"), "plain");
+    assertEquals(UserCsv.field("Doe, Jane"), "\"Doe, Jane\"");
+    assertEquals(UserCsv.field("say \"hi\""), "\"say \"\"hi\"\"\"");
+  }
+}

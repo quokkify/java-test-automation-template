@@ -1,0 +1,31 @@
+package {{ base_package }}.seed.generate;
+
+import java.util.Locale;
+import java.util.Random;
+
+import net.datafaker.Faker;
+
+/**
+ * The only class that calls Datafaker. Its seeded {@link Random} makes every value depend on the seed and on the
+ * order of the calls alone.
+ */
+final class FakeValues {
+
+  private final Faker faker;
+
+  FakeValues(long seed) {
+    faker = new Faker(Locale.ENGLISH, new Random(seed));
+  }
+
+  String fullName() {
+    return faker.name().fullName();
+  }
+
+  String phone() {
+    return faker.phoneNumber().cellPhone();
+  }
+
+  String city() {
+    return faker.address().city();
+  }
+}

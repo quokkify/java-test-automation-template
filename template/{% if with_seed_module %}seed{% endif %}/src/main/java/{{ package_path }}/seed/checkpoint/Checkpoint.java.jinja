@@ -1,0 +1,15 @@
+package {{ base_package }}.seed.checkpoint;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * The stand state that a {@code StandProbe} captured, sorted by key.
+ */
+public record Checkpoint(Map<String, String> state) {
+
+  public Checkpoint {
+    state = Collections.unmodifiableSortedMap(new TreeMap<>(state));
+  }
+}

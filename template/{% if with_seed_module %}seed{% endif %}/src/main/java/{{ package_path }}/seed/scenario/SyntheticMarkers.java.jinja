@@ -1,0 +1,29 @@
+package {{ base_package }}.seed.scenario;
+
+/**
+ * The single place for the prefixes and domains that tag generated data, so that load, checkpoints and clean-up
+ * can tell it from real data on the stand.
+ */
+public final class SyntheticMarkers {
+
+  public static final String ID_PREFIX = "syn-";
+  /**
+   * A domain under the reserved {@code .example} TLD (RFC 2606), so no generated address reaches a real mailbox.
+   */
+  public static final String EMAIL_DOMAIN = "synthetic.example";
+
+  private SyntheticMarkers() {
+  }
+
+  public static String id(long seed, int index) {
+    return ID_PREFIX + seed + "-" + index;
+  }
+
+  public static String email(String id) {
+    return id + "@" + EMAIL_DOMAIN;
+  }
+
+  public static boolean isSynthetic(String value) {
+    return value.startsWith(ID_PREFIX) || value.endsWith("@" + EMAIL_DOMAIN);
+  }
+}

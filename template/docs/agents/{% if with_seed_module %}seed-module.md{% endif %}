@@ -1,0 +1,258 @@
+# Spec: the seed module (synthetic test data)
+
+The template manages this file, and `copier update` refreshes it. It is the contract for the `seed/` Gradle
+subproject, which the template generates when `with_seed_module` is `true` in `.copier-answers.yml`. An agent
+reads it before it adds or changes code under `seed/`, and when the golden test or `standTest` fails.
+
+## 1. Intent
+
+`seed/` builds synthetic datasets, loads them onto a stand, and shows what the load changed:
+
+- `generate` turns a seed and a size preset into a `Scenario` with Datafaker. The same seed and preset always
+  give the same files.
+- `load` pushes a scenario to the stand through the services and steps of the main project.
+- `diff` compares the stand state with the checkpoint that `load` recorded.
+
+It is a client of the main project (`src/main`), not a second framework: it reuses the configs, services, steps
+and verifications there and adds none of its own.
+
+## 2. Layout
+
+`<base>` is `<package_root>.<package_name>` from `.copier-answers.yml`. Put each class into the package of its
+concern, and do not create other packages under `<base>.seed`. Every package has a `package-info.java` that states
+its purpose.
+
+```text
+seed/
+  build.gradle                 template-managed: `copier update` replaces it, do not edit
+  gradle/dependencies.gradle   the project's: repositories and dependencies of seed/
+  gradle/seed.versions.toml    the project's: version catalog `seedLibs` (Datafaker, q4j jackson-json)
+  src/main/java/<base>/seed/
+    scenario/    the serialized dataset contract: Scenario (versioned schema), SyntheticUser, SyntheticMarkers, SeedJson
+    generate/    Datafaker with a seeded Random (FakeValues, the only Datafaker caller), SizePreset, ScenarioGenerator
+    format/      builders that mirror the application's own storage formats (UserCsv)
+    files/       deterministic binary fixtures such as images and PDFs (PngFixture)
+    stand/       StandProbe: reads the stand state through the main project's steps and configs
+    load/        ScenarioLoader: orchestration only, pushes a scenario through the main project's steps
+    checkpoint/  Checkpoint (snapshot of the stand state) and CheckpointDiff
+    cli/         SeedCli and one thin command class per command: generate, load, diff
+  src/main/resources/META-INF/services/   registrations of the ScenarioLoader and StandProbe implementations
+  src/test/java/<base>/seed/   tests, in the package of the class they test
+  src/test/resources/golden/   expected output of `generate` (determinism guard)
+src/main/java/<base>/config/SeedConfig.java   defaults of the command line (SEED_PRESET, SEED_DIR)
+src/main/resources/seed.properties
+```
+
+## 3. Requirements
+
+Each requirement can be checked with a file read or a command, run from the project root.
+
+| ID  | Requirement | Check |
+| --- | ----------- | ----- |
+| S1  | `settings.gradle` has `include 'seed'` and declares the catalog `seedLibs` from `seed/gradle/seed.versions.toml`. | read `settings.gradle` |
+| S2  | `seed/build.gradle` is the template file of the same template version. Seed dependencies go in `seed/gradle/dependencies.gradle`. | `diff` against the template's seed `build.gradle.jinja` at `<ref>`, the `_commit` of `.copier-answers.yml` |
+| S3  | `seed/` depends on the main project with `implementation project(':')`. The main project has no seed source sets, and no build script adds `sourceSets.main.output` to another classpath. | `grep -rn 'sourceSets.main.output' build.gradle gradle seed/gradle` prints nothing |
+| S4  | Datafaker is declared only in `seed/gradle/dependencies.gradle`, from the `seedLibs` catalog, whose `q4j` version equals the one in `gradle/libs.versions.toml`, and `generate/FakeValues` is the only class that imports `net.datafaker`. | `grep -rln 'net.datafaker' seed/src src` prints only `FakeValues.java` |
+| S5  | No parallel services: `seed/` has no `*Service`, `*Steps` or `*Verification` classes, sends no requests itself and opens no database connections. Requests go through a service in `src/main/.../service` and a steps class in `src/main/.../step`; extend those, or add them there. | `grep -rnE 'RestAssured\|java\.net\.http\|java\.sql\|DriverManager' seed/src` prints nothing |
+| S6  | Every setting comes from an Owner config in `<base>.config`, read through `ConfigRegistry` (AGENTS.md rule 2). No `System.getenv` or `System.getProperty` in `seed/`. | `grep -rnE 'System\.(getProperty\|getenv)' seed/src` prints nothing |
+| S7  | HTTP status codes are `org.apache.http.HttpStatus` constants (AGENTS.md rule 10). | `grep -rniE 'status[a-z]*\(.*\b[1-5][0-9]{2}\b' seed/src` prints nothing |
+| S8  | Pages are used only through their `*PageSteps`; `seed/` never imports a `*Page` class. | review the imports |
+| S9  | Every generated identifier and contact value carries a marker of `SyntheticMarkers`, and the markers are defined only there. | review; `SyntheticMarkers.isSynthetic` is true for each id and email |
+| S10 | `generate`, `format` and `files` are deterministic: no unseeded `Random`, no `UUID.randomUUID`, no clock. The golden test passes. | `./gradlew :seed:test` |
+| S11 | Unit tests are named `*Test` and run in `:seed:test`, which `check` runs. Tests that change the stand are named `*StandTest` and run only in `:seed:standTest`. No TestNG groups (AGENTS.md rule 9). | `./gradlew :seed:test` prints no `*StandTest` |
+| S12 | `seed/` passes `:seed:archgateCheck` with `rootPackage = '<base>.seed'` and the same rule list as the main project. | `./gradlew :seed:archgateCheck` prints `Gate PASSED` |
+| S13 | CI runs `:seed:standTest` in its own job against a stand, not in the job of the end-to-end tests and never concurrently against one stand, and uploads `seed/build/allure-results` (section 7). | read the CI configuration |
+
+Why S4 needs care: `seed/gradle/seed.versions.toml` repeats the `q4j` version of the root catalog, and the two
+must stay equal. Renovate updates them in one pull request only when it groups the q4j artifacts. Add the opt-in
+preset `github>quokkify/renovate-presets//presets/gradle/q4j` to `extends` of the project's Renovate
+configuration once quokkify/renovate-presets releases it
+([quokkify/renovate-presets#74](https://github.com/quokkify/renovate-presets/pull/74)). Until then, add this rule
+instead, and replace it with the preset after the release:
+
+```json
+{
+  "packageRules": [
+    {
+      "matchDatasources": ["maven"],
+      "matchPackageNames": ["/^dev\\.quokkify:/"],
+      "groupName": "q4j"
+    }
+  ]
+}
+```
+
+Why `*StandTest` and not `*IT`: the `TestClassNamingRule` of the architecture gate requires every class with
+`@Test` methods to end in `Test`, so a `*IT` class fails S12. The suffix `StandTest` keeps that rule and still
+selects the stand tests by name.
+
+## 4. Extension points
+
+`load` and `diff` call two interfaces that the project implements, because only the project knows its services
+and its database:
+
+- `<base>.seed.load.ScenarioLoader`: `void load(Scenario scenario)`. Push the scenario through the steps of the
+  main project.
+- `<base>.seed.stand.StandProbe`: `Map<String, String> capture()`. Read the stand state that a checkpoint records,
+  for example a row count per table, through the database or API steps of the main project.
+
+Write each as a public class with a public no-argument constructor in its package (`load/`, `stand/`), and list
+its fully qualified name in `seed/src/main/resources/META-INF/services/<base>.seed.load.ScenarioLoader` or
+`.../<base>.seed.stand.StandProbe`. `ServiceRegistrationRule` checks both files. Register exactly one implementation of each: with none, or with
+more than one, `load` and `diff` stop with a message that names the file to fix.
+
+Unit tests never call a registered implementation, because it changes or reads the real stand. They test
+`LoadCommand` and `DiffCommand` with lambdas, and `discover(ClassLoader)` with an empty class loader. A test that
+needs the real implementations is a `*StandTest` (section 7).
+
+```java
+// seed/src/main/java/<base>/seed/load/ApiScenarioLoader.java
+public class ApiScenarioLoader implements ScenarioLoader {
+  private final UserApiSteps userApiSteps = new UserApiSteps();
+
+  @Override
+  public void load(Scenario scenario) {
+    scenario.users().forEach(user -> {
+      ValidatableResponse response = userApiSteps.createUser(new UserPojo(user.id(), user.fullName(), user.email()));
+      userApiSteps.verify().verifyResponseStatusCode(response, HttpStatus.SC_CREATED);
+    });
+  }
+}
+
+// seed/src/main/java/<base>/seed/stand/DbStandProbe.java
+public class DbStandProbe implements StandProbe {
+  private final UserDbSteps userDbSteps = new UserDbSteps();
+
+  @Override
+  public Map<String, String> capture() {
+    return Map.of("users", String.valueOf(userDbSteps.countUsers()));
+  }
+}
+```
+
+`UserApiSteps`, `UserPojo` and `UserDbSteps` live in `src/main`, as AGENTS.md section 2 describes. `seed/` sees the
+classes of the main project, but not the libraries the main project declares as `implementation`. Declare each
+q4j module whose types the code under `seed/` uses in `seed/gradle/dependencies.gradle`, from the root catalog,
+for example `implementation libs.q4j.rest.assured`.
+
+## 5. Commands
+
+Run from the project root. A relative `--dir` resolves against `seed/`, the working directory of `run`.
+
+```sh
+./gradlew :seed:run --args='generate --seed 1'                     # SEED_PRESET into SEED_DIR (seed/build/seed)
+./gradlew :seed:run --args='generate --seed 7 --preset large --dir build/large'
+./gradlew :seed:run --args='load'                                  # writes checkpoint.json, then loads scenario.json
+./gradlew :seed:run --args='diff'                                  # writes diff.json: changes since that checkpoint
+```
+
+`generate` writes `scenario.json`, `users.csv` and `avatars/<id>.png`. `load` and `diff` read and write in the
+same directory. The presets are `small` (5 users), `medium` (100) and `large` (1000).
+
+## 6. Determinism and the golden file
+
+`SeedCliTest.generateMatchesTheGoldenScenario` runs `generate --seed 1 --preset small` and compares
+`scenario.json` with `seed/src/test/resources/golden/scenario-seed-1-small.json`. It fails when a code change, a
+package move or a Datafaker upgrade changes the generated data. Then:
+
+1. Decide whether the change is intended. A refactoring that changes the data is a bug.
+2. If the scenario contract changed so that an older file no longer reads, raise `Scenario.SCHEMA_VERSION`.
+3. Replace the golden file with the file the failure message names, and say in the change description why the
+   data changed.
+
+`FakeValues` takes its values from one seeded `Random` in call order. Add a new field at the end of the
+generation of a record, so that the values of the fields before it stay the same.
+
+## 7. Tests and CI
+
+| Task | Runs | Part of `check` |
+| ---- | ---- | --------------- |
+| `:seed:test` | `*Test` classes except `*StandTest`: no stand needed | yes |
+| `:seed:standTest` | `*StandTest` classes: change the stand | no |
+
+Both tasks run through the q4j TestNG extensions and write Allure results to `seed/build/allure-results`
+([test-execution.md](test-execution.md), [test-reporting.md](test-reporting.md)). `standTest` succeeds when there
+is no `*StandTest` class yet.
+
+Run `standTest` in a CI job of its own, never in the same job or Gradle run as the end-to-end tests of the main
+project, and never from two runs at once against the same stand. A java component in ci-kit's
+`.ci/modules/java.yml` runs on every pull request and push, so it does not fit: it would change the shared stand
+from parallel runs and next to the end-to-end tests. Until ci-kit can run such a component with secrets and after
+other jobs ([quokkify/ci-kit#547](https://github.com/quokkify/ci-kit/issues/547)), add a workflow of the project's
+own, for example `.github/workflows/seed-stand.yml`. It is not a ci-kit-rendered file, so ci-kit leaves it alone.
+It calls the reusable ci-kit `java-ci.yml` on demand and on a schedule, with one `concurrency` group per stand:
+
+```yaml
+name: Seed stand tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1-5"
+
+concurrency:
+  group: stand-<stand name>
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  stand:
+    uses: quokkify/ci-kit/.github/workflows/java-ci.yml@<the ci-kit tag of .copier-answers.core.yml>
+    with:
+      working-directory: test-automation
+      java-version: "21"
+      run-lint: false
+      run-build: false
+      test-command: ./gradlew :seed:standTest --console=plain
+      upload-test-artifacts: true
+      test-artifact-name: allure-results-seed-stand
+      test-artifact-path: seed/build/allure-results
+```
+
+`working-directory` is the folder of this project, and `test-artifact-path` is relative to it. The upload fails
+when the directory is missing, so add the workflow together with the first `*StandTest` class. The job reads the
+stand settings like any other run, from the Owner configs, so non-secret defaults go in `src/main/resources`.
+Without ci-kit, write the same job by hand: run `./gradlew :seed:standTest` and upload
+`seed/build/allure-results`.
+
+## 8. Adoption procedure
+
+Run it to add the module to a project generated without it.
+
+0. Check that the root build has what `seed/build.gradle` and `seed/gradle/dependencies.gradle` use, because they
+   apply the plugins by id without a version and read the root catalog `libs`:
+   - `build.gradle` applies `alias(libs.plugins.spotbugs)` and `alias(libs.plugins.archgate)`. Without the
+     ArchGate plugin, run the adoption procedure of [architecture-verification.md](architecture-verification.md)
+     first;
+   - `gradle/libs.versions.toml` declares the libraries `testng`, `checkstyle` and `archgate-bom`;
+   - `gradle/` has `compilation.gradle`, `code-analysis.gradle`, `tests.gradle` and `allure.gradle`, and
+     `tools/` has the Checkstyle and SpotBugs configs.
+1. Run `copier update --data with_seed_module=true`. It adds `seed/`, this spec, `SeedConfig` and
+   `seed.properties`, but it does not change `settings.gradle`, which belongs to the project.
+2. Append to `settings.gradle` (S1):
+
+   ```groovy
+   include 'seed'
+
+   dependencyResolutionManagement {
+       versionCatalogs {
+           seedLibs {
+               from(files('seed/gradle/seed.versions.toml'))
+           }
+       }
+   }
+   ```
+
+3. If the project has local seed code (an extra `src/seed` source set, a `gradle/seed.gradle`), move each class
+   into the package of section 2, delete the old source set and script, and replace its services, sessions and
+   `System.getenv` calls with the main project's services, steps and configs (S3 to S6).
+4. Run `./gradlew check` and check every box in section 9.
+
+## 9. Acceptance criteria
+
+- [ ] S1 to S12 hold, and S13 when the project has CI.
+- [ ] `./gradlew check` passes, and its output lists `:seed:test` and `:seed:archgateCheck`.
+- [ ] Two runs of `./gradlew :seed:run --args='generate --seed 1'` write identical files.
+- [ ] `./gradlew :seed:standTest` runs only `*StandTest` classes.
