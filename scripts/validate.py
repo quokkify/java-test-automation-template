@@ -174,8 +174,47 @@ def validate_gate_migration(temporary: Path, static: bool) -> None:
         status = subprocess.run(["git", "status", "--porcelain"], cwd=project, check=True,
                                 capture_output=True, text=True).stdout
         assert not status, f"a second migration run must change nothing, changed:\n{status}"
+    validate_customized_migration(source, temporary)
     if not static:
         run(["./gradlew", "--no-daemon", "check"], projects["plain"])
+
+
+def validate_customized_migration(source: Path, temporary: Path) -> None:
+    """The migration keeps what a customized build still uses, reports what it leaves, and keeps CRLF."""
+    project = temporary / "legacy-customized"
+    run_copy(str(source), project, defaults=True, vcs_ref="v1.4.0")
+    build = project / "build.gradle"
+    text = build.read_text().replace("apply from: 'gradle/architecture.gradle'",
+                                     'apply from: "$rootDir/gradle/architecture.gradle"')
+    text += "def gate = file('gradle/architecture.gradle')\ntasks.named('check') { dependsOn 'verifyArchitecture' }\n"
+    build.write_bytes(text.replace("\n", "\r\n").encode())
+    (project / "gradle/extra.gradle").write_text("apply from: file('gradle/architecture.gradle')\n")
+    catalog = project / "gradle/libs.versions.toml"
+    catalog.write_text(catalog.read_text().replace(
+        "[plugins]\n", 'extra = { module = "org.example:extra", version = { ref = "log4j" } }\n\n[plugins]\n')
+        + '\n[bundles]\nlogging = ["log4j-slf4j2-impl"]\n')
+    (project / "gradle.properties").write_bytes(b"org.gradle.caching=true\r\narchitecture.packages=com.example\r\n")
+    registry = project / "tools/architecture/META-INF/services/dev.quokkify.architecture.contract.ArchitectureRule"
+    registry.write_text(registry.read_text() + "com.example.CustomRule\n")
+
+    output = subprocess.run([sys.executable, str(ROOT / "migrations/remove_architecture_gate.py")], cwd=project,
+                            check=True, capture_output=True, text=True).stdout
+    print(output)
+    built = build.read_bytes()
+    assert b"architecture.gradle\"" not in built.split(b"def gate")[0], "the $rootDir apply line must go"
+    assert b"\n" not in built.replace(b"\r\n", b""), "build.gradle must keep its CRLF line endings"
+    assert "architecture.gradle" not in (project / "gradle/extra.gradle").read_text(), "the file() apply line must go"
+    assert (project / "gradle/architecture.gradle").is_file(), "a gate script still referenced must be kept"
+    assert "build.gradle:" in output and "def gate = file('gradle/architecture.gradle')" in output, output
+    assert "dependsOn 'verifyArchitecture'" in output, "leftover verifyArchitecture references must be reported"
+    assert "com.example.CustomRule" in output, "rules the template did not list must be reported"
+    assert "ARCHITECTURE GATE IS NOW DISABLED" in output, output
+    assert (project / "gradle.properties").read_bytes() == b"org.gradle.caching=true\r\n", "CRLF must stay"
+    catalog_text = catalog.read_text()
+    for kept in ("log4j = ", "log4j-slf4j2-impl = "):
+        assert kept in catalog_text, f"{kept.strip(' =')} is still used and must be kept"
+    for removed in ("q4j-architecture", "log4j-core"):
+        assert removed not in catalog_text, f"{removed} is unused and must be removed"
 
 
 STEP_PROBE = """package com.example.test_automation.test;

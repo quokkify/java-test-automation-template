@@ -43,16 +43,23 @@ version that delivered this file. If that value is not a release tag (it then lo
 `v2.0.0-3-gabc1234`), use the latest release tag of the template instead.
 
 An update from a template version before 2.0.0 also runs a Copier migration, which Copier runs only with
-`copier update --trust`. The migration removes the old q4j gate (step 1) and nothing else.
+`copier update --trust`. The migration removes the old q4j gate (step 1) and nothing else, so after it the
+project has no architecture gate at all until this procedure is done.
 
-1. Remove the old q4j gate (R8), if any of it is left. The migration does this; check it, and do by hand
-   what is still there:
-   - delete the line `apply from: 'gradle/architecture.gradle'` from `build.gradle`;
-   - delete `gradle/architecture.gradle` and the `tools/architecture/` directory;
+1. Remove the old q4j gate (R8), if any of it is left. The migration does this and prints a `WARNING` line
+   for each thing it left to you; check its output, and do by hand what is still there:
+   - delete every line that applies `gradle/architecture.gradle` from the Gradle scripts;
+   - delete `gradle/architecture.gradle` and the `tools/architecture/` directory. Before you delete
+     `tools/architecture/`, note every rule its services file lists other than the five template rules
+     (`JavaConventionsRule`, `NoConsoleOutputRule`, `NoDeprecatedApiRule`, `ServiceRegistrationRule`,
+     `TestClassNamingRule`); step 6 ports them;
+   - replace every `verifyArchitecture` in Gradle scripts (`dependsOn`, `finalizedBy`, task lists) with
+     `archgateCheck`, or delete the reference until step 4 applies the plugin;
    - delete `architecture.packages` and `architecture.fail.on` from `gradle.properties`, and the file if
      nothing else is left in it;
    - delete `q4j-architecture`, `log4j-core` and `log4j-slf4j2-impl` from `[libraries]` of
-     `gradle/libs.versions.toml`, and `log4j` from `[versions]`, unless another build script uses them.
+     `gradle/libs.versions.toml`, and `log4j` from `[versions]`, unless a build script, a `[bundles]` entry
+     or another library still uses them.
 
    Then run `./gradlew assemble testClasses`, and fix what fails before you go on.
 2. Check the wrapper (R1). If it is older than 9.7.1, run
@@ -92,6 +99,8 @@ An update from a template version before 2.0.0 also runs a Copier migration, whi
 6. Check that `src/test/resources/META-INF/services/dev.quokkify.archgate.api.ArchitectureRule` exists (R5).
    If it does not, copy it from
    `https://raw.githubusercontent.com/quokkify/java-test-automation-template/<ref>/template/src/test/resources/META-INF/services/dev.quokkify.archgate.api.ArchitectureRule`.
+   If step 1 found rules of the old gate that the template did not list, write an ArchGate rule for each in
+   `src/test/java` (or a `<project>-archgate-rules` module) and list it in this file.
 7. Run `./gradlew archgateCheck`. Fix every `ERROR` finding as section 4 describes, then fix the `WARNING`
    findings or list them in the change description. A run without findings needs nothing more.
 8. Make sure CI runs `check` or `archgateCheck` (R6). If CI runs only named tasks, such as
