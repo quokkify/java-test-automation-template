@@ -61,7 +61,24 @@ Each requirement can be checked with a file read or a command, run from the proj
 | S10 | `generate`, `format` and `files` are deterministic: no unseeded `Random`, no `UUID.randomUUID`, no clock. The golden test passes. | `./gradlew :seed:test` |
 | S11 | Unit tests are named `*Test` and run in `:seed:test`, which `check` runs. Tests that change the stand are named `*StandTest` and run only in `:seed:standTest`. No TestNG groups (AGENTS.md rule 9). | `./gradlew :seed:test` prints no `*StandTest` |
 | S12 | `seed/` passes `:seed:archgateCheck` with `rootPackage = '<base>.seed'` and the same rule list as the main project. | `./gradlew :seed:archgateCheck` prints `Gate PASSED` |
-| S13 | CI runs `:seed:standTest` in its own job against a stand, not in the job of the end-to-end tests, and uploads `seed/build/allure-results` (section 7). | read the CI configuration |
+| S13 | CI runs `:seed:standTest` in its own job against a stand, not in the job of the end-to-end tests and never concurrently against one stand, and uploads `seed/build/allure-results` (section 7). | read the CI configuration |
+
+Why S4 needs care: `seed/gradle/seed.versions.toml` repeats the `q4j` version of the root catalog, and the two
+must stay equal. Renovate updates them in one pull request only when it groups the q4j artifacts. The shared
+[quokkify/renovate-presets](https://github.com/quokkify/renovate-presets) is getting such a group; until a preset
+the project extends has it, add this rule to the project's Renovate configuration:
+
+```json
+{
+  "packageRules": [
+    {
+      "matchDatasources": ["maven"],
+      "matchPackageNames": ["/^dev\\.quokkify:/"],
+      "groupName": "q4j"
+    }
+  ]
+}
+```
 
 Why `*StandTest` and not `*IT`: the `TestClassNamingRule` of the architecture gate requires every class with
 `@Test` methods to end in `Test`, so a `*IT` class fails S12. The suffix `StandTest` keeps that rule and still
@@ -156,34 +173,47 @@ Both tasks run through the q4j TestNG extensions and write Allure results to `se
 is no `*StandTest` class yet.
 
 Run `standTest` in a CI job of its own, never in the same job or Gradle run as the end-to-end tests of the main
-project. With [quokkify/ci-kit](https://github.com/quokkify/ci-kit), do not edit its rendered workflows. Add a
-component to the project's `.ci/modules/java.yml` instead, with `path` set to the folder of this project, and run
-`ci-kit update`:
+project, and never from two runs at once against the same stand. A java component in ci-kit's
+`.ci/modules/java.yml` runs on every pull request and push, so it does not fit: it would change the shared stand
+from parallel runs and next to the end-to-end tests. Until ci-kit can run such a component with secrets and after
+other jobs ([quokkify/ci-kit#547](https://github.com/quokkify/ci-kit/issues/547)), add a workflow of the project's
+own, for example `.github/workflows/seed-stand.yml`. It is not a ci-kit-rendered file, so ci-kit leaves it alone.
+It calls the reusable ci-kit `java-ci.yml` on demand and on a schedule, with one `concurrency` group per stand:
 
 ```yaml
-  - id: seed-stand
-    name: Seed stand tests
-    path: test-automation
-    java_version: "21"
-    run_lint: false
-    run_build: false
-    test_command: ./gradlew :seed:standTest --console=plain
-    upload_test_artifacts: true
-    test_artifact_name: allure-results-seed-stand
-    test_artifact_path: seed/build/allure-results
+name: Seed stand tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1-5"
+
+concurrency:
+  group: stand-<stand name>
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  stand:
+    uses: quokkify/ci-kit/.github/workflows/java-ci.yml@<the ci-kit tag of .copier-answers.core.yml>
+    with:
+      working-directory: test-automation
+      java-version: "21"
+      run-lint: false
+      run-build: false
+      test-command: ./gradlew :seed:standTest --console=plain
+      upload-test-artifacts: true
+      test-artifact-name: allure-results-seed-stand
+      test-artifact-path: seed/build/allure-results
 ```
 
-A java component runs on every pull request and push, so on its own it would change the shared stand from
-several runs at the same time, and next to the end-to-end tests. Until ci-kit can run such a component with
-secrets and after other jobs ([quokkify/ci-kit#547](https://github.com/quokkify/ci-kit/issues/547)), prefer a
-separate workflow of the project that calls the same reusable ci-kit `java-ci.yml` on `workflow_dispatch` or a
-`schedule`, with a `concurrency` group per stand. If the component stays in `.ci/modules/java.yml`, set
-`run_tests: false` and enable it only on a branch that owns the stand.
-
-`test_artifact_path` is relative to `path`. The upload fails when the directory is missing, so add the component
-together with the first `*StandTest` class. The job reads the stand settings like any other run: from the Owner
-configs, so non-secret defaults go in `src/main/resources`. Without ci-kit, add a job that runs
-`./gradlew :seed:standTest` and uploads `seed/build/allure-results`.
+`working-directory` is the folder of this project, and `test-artifact-path` is relative to it. The upload fails
+when the directory is missing, so add the workflow together with the first `*StandTest` class. The job reads the
+stand settings like any other run, from the Owner configs, so non-secret defaults go in `src/main/resources`.
+Without ci-kit, write the same job by hand: run `./gradlew :seed:standTest` and upload
+`seed/build/allure-results`.
 
 ## 8. Adoption procedure
 

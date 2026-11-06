@@ -1,6 +1,7 @@
 [versions]
 datafaker = "2.7.0"
-# Keep equal to `q4j` in gradle/libs.versions.toml; Renovate updates both in its q4j group.
+# Must stay equal to `q4j` in gradle/libs.versions.toml. Group dev.quokkify updates in Renovate so that
+# both change in one pull request; see docs/agents/seed-module.md, section 3.
 q4j = "0.12.2"
 
 [libraries]
