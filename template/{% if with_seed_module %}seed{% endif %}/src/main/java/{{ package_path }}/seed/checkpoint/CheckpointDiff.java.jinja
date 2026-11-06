@@ -1,0 +1,40 @@
+package {{ base_package }}.seed.checkpoint;
+
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * What changed between two checkpoints: keys only in the later one, keys only in the earlier one, and changed values.
+ */
+public record CheckpointDiff(Map<String, String> added, Map<String, String> removed, Map<String, Change> changed) {
+
+  public static CheckpointDiff between(Checkpoint before, Checkpoint after) {
+    Map<String, String> added = new TreeMap<>();
+    Map<String, String> removed = new TreeMap<>();
+    Map<String, Change> changed = new TreeMap<>();
+    after.state().forEach((key, value) -> {
+      String old = before.state().get(key);
+      if (old == null) {
+        added.put(key, value);
+      } else if (!old.equals(value)) {
+        changed.put(key, new Change(old, value));
+      }
+    });
+    before.state().forEach((key, value) -> {
+      if (!after.state().containsKey(key)) {
+        removed.put(key, value);
+      }
+    });
+    return new CheckpointDiff(added, removed, changed);
+  }
+
+  public boolean hasChanges() {
+    return !added.isEmpty() || !removed.isEmpty() || !changed.isEmpty();
+  }
+
+  /**
+   * A value before and after.
+   */
+  public record Change(String before, String after) {
+  }
+}

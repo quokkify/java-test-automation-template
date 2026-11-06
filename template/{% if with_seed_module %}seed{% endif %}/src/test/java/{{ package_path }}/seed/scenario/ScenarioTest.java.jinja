@@ -1,0 +1,55 @@
+package {{ base_package }}.seed.scenario;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertThrows;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
+
+public class ScenarioTest {
+
+  private static final SyntheticUser USER =
+    new SyntheticUser("syn-1-0", "Ada Lovelace", "syn-1-0@synthetic.example", "555-0100", "London");
+
+  @Test
+  public void stampsTheCurrentSchemaVersion() {
+    assertEquals(Scenario.of(1, "small", List.of(USER)).schemaVersion(), Scenario.SCHEMA_VERSION);
+  }
+
+  @Test
+  public void rejectsAnotherSchemaVersion() {
+    assertThrows(IllegalArgumentException.class, () -> new Scenario(Scenario.SCHEMA_VERSION + 1, 1, "small", List.of()));
+  }
+
+  @Test
+  public void survivesAJsonRoundTrip() throws IOException {
+    Path file = Files.createTempDirectory(Path.of("build"), "scenario").resolve("scenario.json");
+    Scenario scenario = Scenario.of(1, "small", List.of(USER));
+    SeedJson.write(scenario, file);
+    assertEquals(SeedJson.read(file, Scenario.class), scenario);
+  }
+
+  @Test
+  public void namesTheMissingFile() {
+    IllegalStateException error = expectThrows(IllegalStateException.class,
+      () -> SeedJson.read(Path.of("build", "missing.json"), Scenario.class));
+    assertTrue(error.getMessage().contains("missing.json"), error.getMessage());
+  }
+
+  @Test
+  public void marksGeneratedValues() {
+    String id = SyntheticMarkers.id(7, 3);
+    assertEquals(id, "syn-7-3");
+    assertEquals(SyntheticMarkers.email(id), "syn-7-3@synthetic.example");
+    assertTrue(SyntheticMarkers.isSynthetic(id));
+    assertTrue(SyntheticMarkers.isSynthetic("someone@" + SyntheticMarkers.EMAIL_DOMAIN));
+    assertFalse(SyntheticMarkers.isSynthetic("someone@example.com"));
+  }
+}

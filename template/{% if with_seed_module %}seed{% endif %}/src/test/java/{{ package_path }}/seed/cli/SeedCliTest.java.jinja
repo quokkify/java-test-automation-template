@@ -1,0 +1,60 @@
+package {{ base_package }}.seed.cli;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertThrows;
+
+public class SeedCliTest {
+
+  private static final String GOLDEN = "/golden/scenario-seed-1-small.json";
+
+  @Test
+  public void generateMatchesTheGoldenScenario() throws IOException {
+    Path dir = Files.createTempDirectory(Path.of("build"), "golden");
+    SeedCli.main(new String[] {"generate", "--seed", "1", "--preset", "small", "--dir", dir.toString()});
+    String expected;
+    try (InputStream golden = SeedCliTest.class.getResourceAsStream(GOLDEN)) {
+      expected = new String(golden.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    Path actual = dir.resolve(SeedCli.SCENARIO_FILE);
+    assertEquals(Files.readString(actual), expected, "Generated data changed. If the change is intended (Datafaker upgrade, "
+      + "new fields), raise Scenario.SCHEMA_VERSION when old files no longer read, and replace src/test/resources" + GOLDEN
+      + " with " + actual.toAbsolutePath());
+  }
+
+  @Test
+  public void generateIsRepeatable() throws IOException {
+    Path first = Files.createTempDirectory(Path.of("build"), "first");
+    Path second = Files.createTempDirectory(Path.of("build"), "second");
+    SeedCli.main(new String[] {"generate", "--seed", "42", "--dir", first.toString()});
+    SeedCli.main(new String[] {"generate", "--seed", "42", "--dir", second.toString()});
+    for (String file : new String[] {SeedCli.SCENARIO_FILE, GenerateCommand.USERS_FILE, "avatars/syn-42-4.png"}) {
+      assertEquals(Files.readAllBytes(second.resolve(file)), Files.readAllBytes(first.resolve(file)), file);
+    }
+    assertEquals(Files.readAllLines(first.resolve(GenerateCommand.USERS_FILE)).size(), 6);
+    try (var avatars = Files.list(first.resolve(GenerateCommand.AVATARS_DIR))) {
+      assertEquals(avatars.count(), 5L);
+    }
+  }
+
+  @Test
+  public void rejectsBadArguments() {
+    assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[0]));
+    assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[] {"seed"}));
+    assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[] {"generate"}));
+    assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[] {"generate", "--seed"}));
+  }
+
+  @Test
+  public void loadAndDiffNeedRegisteredExtensions() {
+    assertThrows(IllegalStateException.class, () -> SeedCli.main(new String[] {"load"}));
+    assertThrows(IllegalStateException.class, () -> SeedCli.main(new String[] {"diff"}));
+  }
+}

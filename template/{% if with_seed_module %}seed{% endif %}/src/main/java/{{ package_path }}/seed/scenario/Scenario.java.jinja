@@ -1,0 +1,26 @@
+package {{ base_package }}.seed.scenario;
+
+import java.util.List;
+
+/**
+ * A generated dataset, the contract between generate, load and the tests that use the data.
+ *
+ * <p>Raise {@link #SCHEMA_VERSION} with every change of this record or {@link SyntheticUser} that an older file
+ * cannot be read with, and regenerate the golden scenario of the tests.
+ */
+public record Scenario(int schemaVersion, long seed, String preset, List<SyntheticUser> users) {
+
+  public static final int SCHEMA_VERSION = 1;
+
+  public Scenario {
+    if (schemaVersion != SCHEMA_VERSION) {
+      throw new IllegalArgumentException("Scenario schema version " + schemaVersion + " is not supported, expected "
+          + SCHEMA_VERSION + ". Generate the scenario again.");
+    }
+    users = List.copyOf(users);
+  }
+
+  public static Scenario of(long seed, String preset, List<SyntheticUser> users) {
+    return new Scenario(SCHEMA_VERSION, seed, preset, users);
+  }
+}

@@ -1,1 +1,14 @@
 rootProject.name = "{{ project_name }}"
+{%- if with_seed_module %}
+
+// The seed/ subproject: synthetic test data. See docs/agents/seed-module.md.
+include 'seed'
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        seedLibs {
+            from(files('seed/gradle/seed.versions.toml'))
+        }
+    }
+}
+{%- endif %}

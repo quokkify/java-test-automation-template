@@ -1,0 +1,15 @@
+package {{ base_package }}.seed.stand;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
+
+public class StandProbeTest {
+
+  @Test
+  public void discoveryNamesTheMissingRegistration() {
+    IllegalStateException error = expectThrows(IllegalStateException.class, StandProbe::discover);
+    assertTrue(error.getMessage().contains("META-INF/services/" + StandProbe.class.getName()), error.getMessage());
+  }
+}

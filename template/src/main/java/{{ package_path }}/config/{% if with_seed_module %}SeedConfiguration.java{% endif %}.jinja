@@ -1,0 +1,14 @@
+package {{ base_package }}.config;
+
+import org.aeonbits.owner.Config;
+
+@Config.LoadPolicy(Config.LoadType.MERGE)
+@Config.Sources({"system:properties", "system:env", "classpath:seed.properties"})
+interface SeedConfiguration extends Config {
+
+  @Key("SEED_PRESET")
+  String preset();
+
+  @Key("SEED_DIR")
+  String dir();
+}

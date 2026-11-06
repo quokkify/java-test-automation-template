@@ -1,0 +1,23 @@
+package {{ base_package }}.seed.load;
+
+import java.util.ServiceLoader;
+
+import {{ base_package }}.seed.scenario.Scenario;
+
+/**
+ * Extension point: pushes a {@link Scenario} to the stand through the steps and services of the main project. It
+ * orchestrates calls only; requests belong in {@code src/main/.../service}, never in this module.
+ *
+ * <p>List the implementation in {@code seed/src/main/resources/META-INF/services/<this interface>}.
+ */
+@FunctionalInterface
+public interface ScenarioLoader {
+
+  void load(Scenario scenario);
+
+  static ScenarioLoader discover() {
+    return ServiceLoader.load(ScenarioLoader.class).findFirst().orElseThrow(() -> new IllegalStateException(
+      "No " + ScenarioLoader.class.getName() + " is registered. Implement it with the project's steps and list it in "
+        + "seed/src/main/resources/META-INF/services/" + ScenarioLoader.class.getName() + ", see docs/agents/seed-module.md."));
+  }
+}

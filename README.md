@@ -34,7 +34,15 @@ test-automation/
   tools/         (Checkstyle, SpotBugs)
 ```
 
-Copier asks for `project_name`, `package_root` (e.g. `dev.quokkify`), and `package_name` (defaults to the project name). Everything except `README.md` and `AGENTS.md` is yours after creation; `copier update` refreshes those two. See the generated README.
+Copier asks for `project_name`, `package_root` (e.g. `dev.quokkify`), `package_name` (defaults to the project name), and `with_seed_module` (default `false`). Everything except `README.md`, `AGENTS.md` and the specs under `docs/agents/` is yours after creation; `copier update` refreshes those. See the generated README.
+
+### Optional seed module
+
+`with_seed_module=true` adds `seed/`, a Gradle subproject for synthetic test data: a deterministic Datafaker generator with size presets, a loader and stand checkpoints behind extension points, and a `generate`/`load`/`diff` command line. It depends on the main project, so it reuses its configs, services and steps. `./gradlew check` runs its unit tests and architecture gate; tests that change the stand are `*StandTest` classes run by `./gradlew :seed:standTest`. `copier update` replaces `seed/build.gradle`; seed dependencies and sources stay yours. The layout and rules are in the generated `docs/agents/seed-module.md`.
+
+```sh
+copier copy --data with_seed_module=true --vcs-ref "<tag>" gh:quokkify/java-test-automation-template test-automation
+```
 
 ## Update
 

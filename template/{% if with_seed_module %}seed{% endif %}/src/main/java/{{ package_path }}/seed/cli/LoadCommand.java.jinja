@@ -1,0 +1,29 @@
+package {{ base_package }}.seed.cli;
+
+import java.nio.file.Path;
+
+import {{ base_package }}.seed.checkpoint.Checkpoint;
+import {{ base_package }}.seed.load.ScenarioLoader;
+import {{ base_package }}.seed.scenario.Scenario;
+import {{ base_package }}.seed.scenario.SeedJson;
+import {{ base_package }}.seed.stand.StandProbe;
+
+/**
+ * {@code load}: records the stand state as the checkpoint that {@code diff} compares with, then loads the scenario.
+ */
+final class LoadCommand {
+
+  private final ScenarioLoader loader;
+  private final StandProbe probe;
+
+  LoadCommand(ScenarioLoader loader, StandProbe probe) {
+    this.loader = loader;
+    this.probe = probe;
+  }
+
+  void run(Path dir) {
+    Scenario scenario = SeedJson.read(dir.resolve(SeedCli.SCENARIO_FILE), Scenario.class);
+    SeedJson.write(new Checkpoint(probe.capture()), dir.resolve(SeedCli.CHECKPOINT_FILE));
+    loader.load(scenario);
+  }
+}

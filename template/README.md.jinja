@@ -21,6 +21,16 @@ Compile, then run Checkstyle, SpotBugs and the architecture rules without runnin
 Run the tests. The q4j TestNG extensions registered in `src/test/resources/META-INF/services/org.testng.ITestNGListener` run them in parallel and retry failures; the environment or an optional `src/test/resources/testng.properties` sets `TEST_THREAD_COUNT` and `RETRY_COUNT`. The rules, including how to split test sets, are in [docs/agents/test-execution.md](docs/agents/test-execution.md).
 
 Every test run writes Allure results, with the steps woven in by the AspectJ agent, to `build/allure-results`; publish that directory from CI. See [docs/agents/test-reporting.md](docs/agents/test-reporting.md).
+{%- if with_seed_module %}
+
+The `seed/` subproject generates synthetic test data with Datafaker, loads it onto a stand, and shows what changed.
+`./gradlew check` runs its unit tests; the tests that change the stand run with `./gradlew :seed:standTest`. Its
+layout, commands, rules and CI job are in [docs/agents/seed-module.md](docs/agents/seed-module.md).
+
+```sh
+./gradlew :seed:run --args='generate --seed 1'
+```
+{%- endif %}
 
 ```sh
 ./gradlew test
@@ -40,7 +50,7 @@ Pick modules from the [module catalog](https://github.com/quokkify/q4j#-module-c
 
 ## File ownership
 
-After the first generation the build, Gradle scripts, version catalog, wrapper, tool configs, sources, and `settings.gradle` belong to your project and are never overwritten. Template updates refresh only this README, `AGENTS.md`, the specs under `docs/agents`, and `.copier-answers.yml`. Put project-specific agent rules in `AGENTS.project.md`.
+After the first generation the build, Gradle scripts, version catalog, wrapper, tool configs, sources, and `settings.gradle` belong to your project and are never overwritten. Template updates refresh only this README, `AGENTS.md`, the specs under `docs/agents`, and `.copier-answers.yml`.{% if with_seed_module %} They also replace `seed/build.gradle`; seed dependencies belong in `seed/gradle/dependencies.gradle`, which is yours.{% endif %} Put project-specific agent rules in `AGENTS.project.md`.
 
 ## First-day checklist
 

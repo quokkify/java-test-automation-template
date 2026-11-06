@@ -1,0 +1,44 @@
+package {{ base_package }}.seed.cli;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import {{ base_package }}.seed.files.PngFixture;
+import {{ base_package }}.seed.format.UserCsv;
+import {{ base_package }}.seed.generate.ScenarioGenerator;
+import {{ base_package }}.seed.generate.SizePreset;
+import {{ base_package }}.seed.scenario.Scenario;
+import {{ base_package }}.seed.scenario.SeedJson;
+import {{ base_package }}.seed.scenario.SyntheticUser;
+
+/**
+ * {@code generate}: writes the scenario, its users in the application's CSV format, and one avatar per user.
+ */
+final class GenerateCommand {
+
+  static final String USERS_FILE = "users.csv";
+  static final String AVATARS_DIR = "avatars";
+
+  private final Path dir;
+
+  GenerateCommand(Path dir) {
+    this.dir = dir;
+  }
+
+  void run(long seed, SizePreset preset) {
+    Scenario scenario = ScenarioGenerator.generate(seed, preset);
+    SeedJson.write(scenario, dir.resolve(SeedCli.SCENARIO_FILE));
+    try {
+      Files.writeString(dir.resolve(USERS_FILE), UserCsv.render(scenario.users()), StandardCharsets.UTF_8);
+      Path avatars = Files.createDirectories(dir.resolve(AVATARS_DIR));
+      for (SyntheticUser user : scenario.users()) {
+        Files.write(avatars.resolve(user.id() + ".png"), PngFixture.render(user.id()));
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException("Cannot write the scenario files to " + dir, e);
+    }
+  }
+}

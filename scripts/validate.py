@@ -45,6 +45,27 @@ EXPECTED = [
 ]
 MANAGED = {"README.md", "AGENTS.md", "docs/agents/architecture-verification.md", "docs/agents/test-execution.md",
            "docs/agents/test-reporting.md", ".copier-answers.yml"}
+SEED_MAIN = "seed/src/main/java/com/example/test_automation/seed"
+SEED_TEST = "seed/src/test/java/com/example/test_automation/seed"
+SEED_PACKAGES = ("scenario", "generate", "format", "files", "stand", "load", "checkpoint", "cli")
+SEED_EXPECTED = [
+    "seed/build.gradle", "seed/gradle/dependencies.gradle", "seed/gradle/seed.versions.toml",
+    "docs/agents/seed-module.md", "src/main/resources/seed.properties",
+    "src/main/java/com/example/test_automation/config/SeedConfig.java",
+    "src/main/java/com/example/test_automation/config/SeedConfiguration.java",
+    *(f"{SEED_MAIN}/{package}/package-info.java" for package in SEED_PACKAGES),
+    *(f"{SEED_MAIN}/{name}" for name in (
+        "scenario/Scenario.java", "scenario/SyntheticUser.java", "scenario/SyntheticMarkers.java",
+        "scenario/SeedJson.java", "generate/SizePreset.java", "generate/FakeValues.java",
+        "generate/ScenarioGenerator.java", "format/UserCsv.java", "files/PngFixture.java", "stand/StandProbe.java",
+        "load/ScenarioLoader.java", "checkpoint/Checkpoint.java", "checkpoint/CheckpointDiff.java",
+        "cli/SeedCli.java", "cli/GenerateCommand.java", "cli/LoadCommand.java", "cli/DiffCommand.java",
+    )),
+    f"{SEED_TEST}/cli/SeedCliTest.java", "seed/src/test/resources/golden/scenario-seed-1-small.json",
+    "seed/src/test/resources/META-INF/services/dev.quokkify.archgate.api.ArchitectureRule",
+    "seed/src/test/resources/META-INF/services/org.testng.ITestNGListener",
+]
+SEED_MANAGED = {"seed/build.gradle", "docs/agents/seed-module.md"}
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -278,6 +299,80 @@ def assert_gate_fails_on_console_output(project: Path) -> None:
         probe.unlink()
 
 
+STAND_PROBE = """package com.example.test_automation.seed.load;
+
+import org.testng.annotations.Test;
+
+public class ProbeStandTest {
+
+  @Test
+  public void changesTheStand() {
+  }
+}
+"""
+
+
+def assert_seed_static(project: Path, plain: Path) -> None:
+    """With the flag on, seed/ is generated and wired; with it off, nothing of it is."""
+    for name in SEED_EXPECTED:
+        assert (project / name).is_file(), f"missing generated seed file: {name}"
+        assert not (plain / name).exists(), f"{name} must not be generated without with_seed_module"
+    for package in SEED_PACKAGES:
+        assert (project / SEED_MAIN / package).is_dir(), package
+    settings = (project / "settings.gradle").read_text()
+    assert "include 'seed'" in settings and "files('seed/gradle/seed.versions.toml')" in settings, settings
+    build = (project / "seed/build.gradle").read_text()
+    for line in ("implementation project(':')", "seedLibs.datafaker"):
+        assert line in (project / "seed/gradle/dependencies.gradle").read_text(), line
+    for line in ("rootPackage = 'com.example.test_automation.seed'", "failOn = 'ERROR'",
+                 "mainClass = 'com.example.test_automation.seed.cli.SeedCli'", "tasks.register('standTest', Test)"):
+        assert line in build, f"seed/build.gradle must contain {line}"
+    assert "sourceSets.main.output" not in build, "seed must depend on the main project, not on its source sets"
+    assert re.search(r'^datafaker = "[0-9.]+"$', (project / "seed/gradle/seed.versions.toml").read_text(), re.M)
+    assert "datafaker" not in (project / "gradle/libs.versions.toml").read_text(), "Datafaker is used only in seed/"
+    datafaker_users = {path.name for path in (project / "seed/src").rglob("*.java") if "net.datafaker" in path.read_text()}
+    assert datafaker_users == {"FakeValues.java"}, datafaker_users
+    for java_file in (project / "seed/src").rglob("*.java"):
+        text = java_file.read_text()
+        assert not re.search(r"System\.(getProperty|getenv)|RestAssured|java\.sql|groups *=", text), java_file
+    for guide in ("AGENTS.md", "README.md"):
+        assert "](docs/agents/seed-module.md)" in (project / guide).read_text(), guide
+        assert "seed" not in (plain / guide).read_text().lower(), f"{guide} mentions seed without the flag"
+    for path in (project / "seed").rglob("*"):
+        if path.is_file():
+            text = path.read_text()
+            assert "{%" not in text and "{{" not in text, f"unrendered template in {path}"
+    assert (plain / "settings.gradle").read_text() == 'rootProject.name = "test-automation"\n'
+
+
+def assert_seed_gradle(project: Path) -> None:
+    """check runs the seed unit tests and gate, generate is repeatable, standTest runs only *StandTest."""
+    planned = subprocess.run(["./gradlew", "--no-daemon", "-q", "check", "--dry-run"], cwd=project,
+                             check=True, capture_output=True, text=True).stdout
+    for task in (":seed:test", ":seed:archgateCheck", ":seed:checkstyleMain", ":seed:spotbugsMain"):
+        assert task in planned, f"check must run {task}"
+    assert ":seed:standTest" not in planned, "check must not run standTest"
+    run(["./gradlew", "--no-daemon", "check"], project)
+    outputs = []
+    for name in ("first", "second"):
+        out = project / "seed/build" / name
+        run(["./gradlew", "--no-daemon", "-q", ":seed:run", f"--args=generate --seed 1 --dir build/{name}"], project)
+        outputs.append(snapshot(out))
+    assert outputs[0] == outputs[1] and outputs[0], "generate --seed 1 must write identical files"
+    golden = (project / "seed/src/test/resources/golden/scenario-seed-1-small.json").read_bytes()
+    assert outputs[0][Path("scenario.json")] == golden, "generate --seed 1 must match the golden scenario"
+    probe = project / SEED_TEST / "load/ProbeStandTest.java"
+    probe.write_text(STAND_PROBE)
+    try:
+        for task, expected in ((":seed:test", False), (":seed:standTest", True)):
+            output = subprocess.run(["./gradlew", "--no-daemon", "--console=plain", task, "--rerun"], cwd=project,
+                                    check=True, capture_output=True, text=True).stdout
+            assert ("ProbeStandTest > changesTheStand PASSED" in output) == expected, f"{task}:\n{output}"
+            assert expected or "SeedCliTest" in output, f"{task} must run the unit tests:\n{output}"
+    finally:
+        probe.unlink()
+
+
 def validate(static: bool) -> None:
     with tempfile.TemporaryDirectory(prefix="java-test-automation-template-") as tmp:
         temporary = Path(tmp).resolve()
@@ -347,6 +442,10 @@ def validate(static: bool) -> None:
         starter = project / "src/test/java/com/example/test_automation/test/StarterTest.java"
         assert starter.read_text().startswith("package com.example.test_automation.test;"), starter
 
+        seeded = temporary / "seeded"
+        run_copy(str(source), seeded, data={"with_seed_module": True}, defaults=True, vcs_ref="HEAD")
+        assert_seed_static(seeded, project)
+
         named = temporary / "named"
         run_copy(str(source), named, data={"project_name": "qa.suite"}, defaults=True, vcs_ref="HEAD")
         assert 'rootProject.name = "qa.suite"' in (named / "settings.gradle").read_text()
@@ -355,16 +454,17 @@ def validate(static: bool) -> None:
         run_copy(str(source), digits, data={"project_name": "123-app"}, defaults=True, vcs_ref="HEAD")
         assert (digits / "src/main/java/com/example/p_123_app/step/BaseSteps.java").is_file()
         custom = temporary / "custom"
-        run_copy(str(source), custom, data={"package_root": "dev.quokkify", "package_name": "marketdesk"},
-                 defaults=True, vcs_ref="HEAD")
+        run_copy(str(source), custom, data={"package_root": "dev.quokkify", "package_name": "marketdesk",
+                                            "with_seed_module": True}, defaults=True, vcs_ref="HEAD")
         base_steps = custom / "src/main/java/dev/quokkify/marketdesk/step/BaseSteps.java"
         assert base_steps.read_text().startswith("package dev.quokkify.marketdesk.step;"), base_steps
         assert "rootPackage = 'dev.quokkify.marketdesk'" in (custom / "build.gradle").read_text()
+        assert "rootPackage = 'dev.quokkify.marketdesk.seed'" in (custom / "seed/build.gradle").read_text()
         # Checkstyle's CustomImportOrder puts dev.quokkify in its own group and sorts other third-party
         # imports together, so the starter imports depend on the base package.
         late = temporary / "late"
-        run_copy(str(source), late, data={"package_root": "org.zeta", "package_name": "suite"},
-                 defaults=True, vcs_ref="HEAD")
+        run_copy(str(source), late, data={"package_root": "org.zeta", "package_name": "suite",
+                                          "with_seed_module": True}, defaults=True, vcs_ref="HEAD")
         imports = {
             custom / "src/test/java/dev/quokkify/marketdesk/test/StarterTest.java":
                 "import dev.quokkify.marketdesk.config.StarterConfig;\n\nimport org.testng.annotations.Test;\n",
@@ -401,6 +501,7 @@ def validate(static: bool) -> None:
                                      check=True, capture_output=True, text=True).stdout
             assert ":archgateCheck" in planned, "check must run archgateCheck"
             assert_gate_fails_on_console_output(project)
+            assert_seed_gradle(seeded)
             for variant in (custom, late):
                 run(["./gradlew", "--no-daemon", "checkstyleMain", "checkstyleTest"], variant)
 
@@ -415,6 +516,17 @@ def validate(static: bool) -> None:
             (project / name).write_bytes(marker)
             markers[name] = marker
         commit(project, "Project customization")
+        for directory in (".gradle", "build", "seed/.gradle", "seed/build"):
+            shutil.rmtree(seeded / directory, ignore_errors=True)
+        init_git(seeded)
+        seed_markers: dict[str, bytes] = {}
+        for path in seeded.rglob("*"):
+            name = path.relative_to(seeded).as_posix()
+            if path.is_file() and ".git" not in path.relative_to(seeded).parts and name not in MANAGED | SEED_MANAGED:
+                path.write_bytes(b"project-owned fixture content\n")
+                seed_markers[name] = b"project-owned fixture content\n"
+        assert "seed/gradle/dependencies.gradle" in seed_markers and "settings.gradle" in seed_markers
+        commit(seeded, "Project customization")
 
         template = source / "template"
         for path in template.rglob("*"):
@@ -433,6 +545,17 @@ def validate(static: bool) -> None:
                 f"{name} must be refreshed by update"
             )
         assert (project / "added-by-update.txt").is_file(), "new template files must be added"
+        for name in SEED_MANAGED:
+            assert not (project / name).exists(), f"update must not add {name} without with_seed_module"
+        run_update(seeded, defaults=True, overwrite=True, vcs_ref="v9.9.9")
+        for name, marker in seed_markers.items():
+            assert (seeded / name).read_bytes() == marker, f"update replaced {name}"
+        for name in SEED_MANAGED | {"AGENTS.md", "README.md"}:
+            text = (seeded / name).read_text()
+            assert "Updated template fixture content" in text, f"{name} must be refreshed by update"
+            assert "{{" not in text and "{%" not in text, f"unrendered template in {name}"
+        assert "rootPackage = 'com.example.test_automation.seed'" in (seeded / "seed/build.gradle").read_text()
+        assert "with_seed_module: true" in (seeded / ".copier-answers.yml").read_text().splitlines()
         validate_gate_migration(temporary, static)
     print("java-test-automation-template validation: OK" + (" (static)" if static else " (with Gradle)"))
 

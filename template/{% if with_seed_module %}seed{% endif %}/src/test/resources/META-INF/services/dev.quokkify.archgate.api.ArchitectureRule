@@ -1,0 +1,8 @@
+# Architecture rules run by ./gradlew archgateCheck (plugin dev.quokkify.archgate, part of check).
+# Only the rules listed here run. See docs/agents/architecture-verification.md.
+dev.quokkify.archgate.rules.archunit.HashCodeEqualsTogetherRule
+dev.quokkify.archgate.rules.archunit.LoggerFieldNameRule
+dev.quokkify.archgate.rules.archunit.NoConsoleOutputRule
+dev.quokkify.archgate.rules.archunit.NoDeprecatedApiUsageRule
+dev.quokkify.archgate.rules.archunit.ServiceRegistrationRule
+dev.quokkify.archgate.rules.archunit.TestClassNamingRule

@@ -1,0 +1,39 @@
+package {{ base_package }}.seed.files;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.SplittableRandom;
+import javax.imageio.ImageIO;
+
+/**
+ * Small PNG images, for example avatars to upload. The same key always gives the same pixels.
+ */
+public final class PngFixture {
+
+  static final int SIZE = 16;
+  private static final int COLORS = 0x1000000;
+
+  private PngFixture() {
+  }
+
+  public static byte[] render(String key) {
+    SplittableRandom random = new SplittableRandom(key.hashCode());
+    int foreground = random.nextInt(COLORS);
+    int background = random.nextInt(COLORS);
+    BufferedImage image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB);
+    for (int x = 0; x < SIZE; x++) {
+      for (int y = 0; y < SIZE; y++) {
+        image.setRGB(x, y, random.nextBoolean() ? foreground : background);
+      }
+    }
+    ByteArrayOutputStream png = new ByteArrayOutputStream();
+    try {
+      ImageIO.write(image, "png", png);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Cannot render the PNG fixture " + key, e);
+    }
+    return png.toByteArray();
+  }
+}

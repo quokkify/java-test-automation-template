@@ -1,0 +1,34 @@
+package {{ base_package }}.seed.checkpoint;
+
+import java.util.List;
+import java.util.Map;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+
+public class CheckpointDiffTest {
+
+  @Test
+  public void sortsTheStateByKey() {
+    assertEquals(List.copyOf(new Checkpoint(Map.of("users", "1", "orders", "2")).state().keySet()), List.of("orders", "users"));
+  }
+
+  @Test
+  public void reportsAddedRemovedAndChangedKeys() {
+    CheckpointDiff diff = CheckpointDiff.between(new Checkpoint(Map.of("users", "0", "orders", "3")),
+      new Checkpoint(Map.of("users", "5", "carts", "1")));
+    assertEquals(diff.added(), Map.of("carts", "1"));
+    assertEquals(diff.removed(), Map.of("orders", "3"));
+    assertEquals(diff.changed(), Map.of("users", new CheckpointDiff.Change("0", "5")));
+    assertTrue(diff.hasChanges());
+  }
+
+  @Test
+  public void equalCheckpointsHaveNoChanges() {
+    Checkpoint checkpoint = new Checkpoint(Map.of("users", "5"));
+    assertFalse(CheckpointDiff.between(checkpoint, checkpoint).hasChanges());
+  }
+}

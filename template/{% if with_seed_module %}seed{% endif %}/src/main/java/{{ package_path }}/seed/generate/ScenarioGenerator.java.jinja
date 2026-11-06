@@ -1,0 +1,28 @@
+package {{ base_package }}.seed.generate;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import {{ base_package }}.seed.scenario.Scenario;
+import {{ base_package }}.seed.scenario.SyntheticMarkers;
+import {{ base_package }}.seed.scenario.SyntheticUser;
+
+/**
+ * Builds a {@link Scenario}. The same seed and preset give the same scenario for a given Datafaker version; the golden
+ * test of the cli package guards that.
+ */
+public final class ScenarioGenerator {
+
+  private ScenarioGenerator() {
+  }
+
+  public static Scenario generate(long seed, SizePreset preset) {
+    FakeValues values = new FakeValues(seed);
+    List<SyntheticUser> users = new ArrayList<>(preset.users());
+    for (int index = 0; index < preset.users(); index++) {
+      String id = SyntheticMarkers.id(seed, index);
+      users.add(new SyntheticUser(id, values.fullName(), SyntheticMarkers.email(id), values.phone(), values.city()));
+    }
+    return Scenario.of(seed, preset.label(), users);
+  }
+}

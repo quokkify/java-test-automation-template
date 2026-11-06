@@ -1,0 +1,22 @@
+package {{ base_package }}.seed.stand;
+
+import java.util.Map;
+import java.util.ServiceLoader;
+
+/**
+ * Extension point: reads the state of the stand that a checkpoint records, for example a row count per table.
+ *
+ * <p>Implement it with the steps of the main project ({@code *DbSteps}, {@code *ApiSteps}) and their configs, and
+ * list the class in {@code seed/src/main/resources/META-INF/services/<this interface>}.
+ */
+@FunctionalInterface
+public interface StandProbe {
+
+  Map<String, String> capture();
+
+  static StandProbe discover() {
+    return ServiceLoader.load(StandProbe.class).findFirst().orElseThrow(() -> new IllegalStateException(
+      "No " + StandProbe.class.getName() + " is registered. Implement it with the project's steps and list it in "
+        + "seed/src/main/resources/META-INF/services/" + StandProbe.class.getName() + ", see docs/agents/seed-module.md."));
+  }
+}

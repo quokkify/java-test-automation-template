@@ -26,6 +26,13 @@ A class in the "Use or compose" column goes into your own steps class as a field
 For a module that is not listed here, look up its path in the [module catalog](https://github.com/quokkify/q4j#-module-catalog) and the `settings.gradle` of q4j.
 
 Architecture verification has its own spec: [docs/agents/architecture-verification.md](docs/agents/architecture-verification.md). Read it when `build.gradle` does not apply `libs.plugins.archgate`, because the gate is then not wired yet and the spec tells you how to add it. Read it also when `archgateCheck` reports a finding.
+{%- if with_seed_module %}
+
+Synthetic test data lives in the `seed/` Gradle subproject, which has its own spec:
+[docs/agents/seed-module.md](docs/agents/seed-module.md). Read it before you add or change code under `seed/`. The
+rules of this file apply there too: no parallel services, settings only through Owner configs, `HttpStatus`
+constants, pages only through steps, and test sets split by class name, never by TestNG groups.
+{%- endif %}
 
 ## 2. Where code goes
 

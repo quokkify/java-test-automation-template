@@ -1,0 +1,43 @@
+package {{ base_package }}.seed.generate;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
+import static org.testng.Assert.assertThrows;
+import static org.testng.Assert.assertTrue;
+
+public class ScenarioGeneratorTest {
+
+  @Test
+  public void sameSeedGivesSameScenario() {
+    assertEquals(ScenarioGenerator.generate(7, SizePreset.SMALL), ScenarioGenerator.generate(7, SizePreset.SMALL));
+  }
+
+  @Test
+  public void otherSeedGivesOtherUsers() {
+    assertNotEquals(ScenarioGenerator.generate(7, SizePreset.SMALL).users(),
+      ScenarioGenerator.generate(8, SizePreset.SMALL).users());
+  }
+
+  @Test
+  public void presetSetsTheSize() {
+    assertEquals(ScenarioGenerator.generate(1, SizePreset.MEDIUM).users().size(), SizePreset.MEDIUM.users());
+    assertEquals(ScenarioGenerator.generate(1, SizePreset.MEDIUM).preset(), "medium");
+  }
+
+  @Test
+  public void tagsEveryUser() {
+    ScenarioGenerator.generate(1, SizePreset.SMALL).users().forEach(user -> {
+      assertTrue(user.id().startsWith("syn-1-"), user.id());
+      assertTrue(user.email().endsWith("@synthetic.example"), user.email());
+      assertTrue(!user.fullName().isBlank() && !user.phone().isBlank() && !user.city().isBlank(), user.toString());
+    });
+  }
+
+  @Test
+  public void parsesPresetLabels() {
+    assertEquals(SizePreset.parse("Large"), SizePreset.LARGE);
+    assertThrows(IllegalArgumentException.class, () -> SizePreset.parse("huge"));
+  }
+}

@@ -1,0 +1,35 @@
+package {{ base_package }}.seed.cli;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+
+public class LoadDiffCommandTest {
+
+  @Test
+  public void loadRecordsTheCheckpointThenLoads() throws IOException {
+    Path dir = Files.createTempDirectory(Path.of("build"), "load");
+    SeedCli.main(new String[] {"generate", "--seed", "1", "--dir", dir.toString()});
+    List<Object> loaded = new ArrayList<>();
+    new LoadCommand(loaded::add, () -> Map.of("users", "0")).run(dir);
+    assertEquals(loaded.size(), 1);
+    assertEquals(Files.readString(dir.resolve(SeedCli.CHECKPOINT_FILE)), "{\"state\":{\"users\":\"0\"}}\n");
+  }
+
+  @Test
+  public void diffWritesTheChangesSinceTheCheckpoint() throws IOException {
+    Path dir = Files.createTempDirectory(Path.of("build"), "diff");
+    SeedCli.main(new String[] {"generate", "--seed", "1", "--dir", dir.toString()});
+    new LoadCommand(scenario -> { }, () -> Map.of("users", "0", "orders", "3")).run(dir);
+    new DiffCommand(() -> Map.of("users", "5", "carts", "1")).run(dir);
+    assertEquals(Files.readString(dir.resolve(SeedCli.DIFF_FILE)), "{\"added\":{\"carts\":\"1\"},\"removed\":{\"orders\":\"3\"},"
+      + "\"changed\":{\"users\":{\"before\":\"0\",\"after\":\"5\"}}}\n");
+  }
+}

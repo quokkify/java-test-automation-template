@@ -1,0 +1,17 @@
+package {{ base_package }}.config;
+
+import dev.quokkify.config.ConfigRegistry;
+
+/**
+ * Defaults of the seed/ command line: the size preset and the directory that generate writes to.
+ */
+public final class SeedConfig {
+
+  private static final SeedConfiguration CONFIG = ConfigRegistry.get(SeedConfiguration.class);
+
+  public static final String PRESET = CONFIG.preset();
+  public static final String DIR = CONFIG.dir();
+
+  private SeedConfig() {
+  }
+}

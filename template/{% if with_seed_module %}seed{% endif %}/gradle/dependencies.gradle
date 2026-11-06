@@ -1,0 +1,14 @@
+repositories {
+    mavenCentral()
+}
+
+// `libs` is the root catalog gradle/libs.versions.toml, `seedLibs` is seed/gradle/seed.versions.toml.
+dependencies {
+    implementation project(':')
+    implementation seedLibs.datafaker
+    implementation "dev.quokkify:jackson-json:${libs.versions.q4j.get()}"
+    testImplementation libs.testng
+    testImplementation platform(libs.archgate.bom)
+    testImplementation 'dev.quokkify.archgate:archgate-rules-archunit'
+    checkstyle libs.checkstyle
+}
