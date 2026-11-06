@@ -1,15 +1,35 @@
 package {{ base_package }}.seed.load;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.List;
+
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.expectThrows;
 
 public class ScenarioLoaderTest {
 
   @Test
-  public void discoveryNamesTheMissingRegistration() {
-    IllegalStateException error = expectThrows(IllegalStateException.class, ScenarioLoader::discover);
-    assertTrue(error.getMessage().contains("META-INF/services/" + ScenarioLoader.class.getName()), error.getMessage());
+  public void discoveryNamesTheMissingRegistration() throws Exception {
+    try (URLClassLoader empty = new URLClassLoader(new URL[0], ClassLoader.getPlatformClassLoader())) {
+      IllegalStateException error = expectThrows(IllegalStateException.class, () -> ScenarioLoader.discover(empty));
+      assertTrue(error.getMessage().contains("META-INF/services/" + ScenarioLoader.class.getName()), error.getMessage());
+    }
+  }
+
+  @Test
+  public void singleReturnsTheOnlyImplementation() {
+    ScenarioLoader only = scenario -> { };
+    assertSame(ScenarioLoader.single(List.of(only)), only);
+  }
+
+  @Test
+  public void singleRejectsMoreThanOneImplementation() {
+    List<ScenarioLoader> registered = List.of(scenario -> { }, scenario -> { });
+    IllegalStateException error = expectThrows(IllegalStateException.class, () -> ScenarioLoader.single(registered));
+    assertTrue(error.getMessage().startsWith("More than one " + ScenarioLoader.class.getName()), error.getMessage());
   }
 }

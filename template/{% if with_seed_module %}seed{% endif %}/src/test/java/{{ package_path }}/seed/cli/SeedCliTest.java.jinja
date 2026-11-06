@@ -17,7 +17,7 @@ public class SeedCliTest {
 
   @Test
   public void generateMatchesTheGoldenScenario() throws IOException {
-    Path dir = Files.createTempDirectory(Path.of("build"), "golden");
+    Path dir = Files.createTempDirectory("golden");
     SeedCli.main(new String[] {"generate", "--seed", "1", "--preset", "small", "--dir", dir.toString()});
     String expected;
     try (InputStream golden = SeedCliTest.class.getResourceAsStream(GOLDEN)) {
@@ -31,8 +31,8 @@ public class SeedCliTest {
 
   @Test
   public void generateIsRepeatable() throws IOException {
-    Path first = Files.createTempDirectory(Path.of("build"), "first");
-    Path second = Files.createTempDirectory(Path.of("build"), "second");
+    Path first = Files.createTempDirectory("first");
+    Path second = Files.createTempDirectory("second");
     SeedCli.main(new String[] {"generate", "--seed", "42", "--dir", first.toString()});
     SeedCli.main(new String[] {"generate", "--seed", "42", "--dir", second.toString()});
     for (String file : new String[] {SeedCli.SCENARIO_FILE, GenerateCommand.USERS_FILE, "avatars/syn-42-4.png"}) {
@@ -50,11 +50,5 @@ public class SeedCliTest {
     assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[] {"seed"}));
     assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[] {"generate"}));
     assertThrows(IllegalArgumentException.class, () -> SeedCli.main(new String[] {"generate", "--seed"}));
-  }
-
-  @Test
-  public void loadAndDiffNeedRegisteredExtensions() {
-    assertThrows(IllegalStateException.class, () -> SeedCli.main(new String[] {"load"}));
-    assertThrows(IllegalStateException.class, () -> SeedCli.main(new String[] {"diff"}));
   }
 }

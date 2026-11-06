@@ -6,7 +6,7 @@ repositories {
 dependencies {
     implementation project(':')
     implementation seedLibs.datafaker
-    implementation "dev.quokkify:jackson-json:${libs.versions.q4j.get()}"
+    implementation seedLibs.q4j.jackson.json
     testImplementation libs.testng
     testImplementation platform(libs.archgate.bom)
     testImplementation 'dev.quokkify.archgate:archgate-rules-archunit'

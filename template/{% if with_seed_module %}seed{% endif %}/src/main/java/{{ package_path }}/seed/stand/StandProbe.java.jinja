@@ -1,5 +1,6 @@
 package {{ base_package }}.seed.stand;
 
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 
@@ -14,9 +15,30 @@ public interface StandProbe {
 
   Map<String, String> capture();
 
+  /**
+   * The one implementation registered on the context class loader.
+   */
   static StandProbe discover() {
-    return ServiceLoader.load(StandProbe.class).findFirst().orElseThrow(() -> new IllegalStateException(
-      "No " + StandProbe.class.getName() + " is registered. Implement it with the project's steps and list it in "
-        + "seed/src/main/resources/META-INF/services/" + StandProbe.class.getName() + ", see docs/agents/seed-module.md."));
+    return discover(Thread.currentThread().getContextClassLoader());
+  }
+
+  static StandProbe discover(ClassLoader loader) {
+    return single(ServiceLoader.load(StandProbe.class, loader).stream().map(ServiceLoader.Provider::get).toList());
+  }
+
+  /**
+   * Returns the only element, and fails with the registration to fix when there is none or more than one.
+   */
+  static StandProbe single(List<StandProbe> registered) {
+    if (registered.size() == 1) {
+      return registered.get(0);
+    }
+    String file = "seed/src/main/resources/META-INF/services/" + StandProbe.class.getName();
+    if (registered.isEmpty()) {
+      throw new IllegalStateException("No " + StandProbe.class.getName() + " is registered. Implement it with the project's "
+        + "steps and list it in " + file + ", see docs/agents/seed-module.md.");
+    }
+    throw new IllegalStateException("More than one " + StandProbe.class.getName() + " is registered: "
+      + registered.stream().map(provider -> provider.getClass().getName()).toList() + ". Keep one in " + file + ".");
   }
 }

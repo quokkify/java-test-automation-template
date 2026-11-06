@@ -1,5 +1,8 @@
 [versions]
 datafaker = "2.7.0"
+# Keep equal to `q4j` in gradle/libs.versions.toml; Renovate updates both in its q4j group.
+q4j = "0.12.2"
 
 [libraries]
 datafaker = { module = "net.datafaker:datafaker", version.ref = "datafaker" }
+q4j-jackson-json = { module = "dev.quokkify:jackson-json", version.ref = "q4j" }

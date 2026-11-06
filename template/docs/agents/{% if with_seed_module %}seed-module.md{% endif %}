@@ -26,7 +26,7 @@ its purpose.
 seed/
   build.gradle                 template-managed: `copier update` replaces it, do not edit
   gradle/dependencies.gradle   the project's: repositories and dependencies of seed/
-  gradle/seed.versions.toml    the project's: version catalog `seedLibs` (Datafaker)
+  gradle/seed.versions.toml    the project's: version catalog `seedLibs` (Datafaker, q4j jackson-json)
   src/main/java/<base>/seed/
     scenario/    the serialized dataset contract: Scenario (versioned schema), SyntheticUser, SyntheticMarkers, SeedJson
     generate/    Datafaker with a seeded Random (FakeValues, the only Datafaker caller), SizePreset, ScenarioGenerator
@@ -52,7 +52,7 @@ Each requirement can be checked with a file read or a command, run from the proj
 | S1  | `settings.gradle` has `include 'seed'` and declares the catalog `seedLibs` from `seed/gradle/seed.versions.toml`. | read `settings.gradle` |
 | S2  | `seed/build.gradle` is the template file of the same template version. Seed dependencies go in `seed/gradle/dependencies.gradle`. | `diff` against the template's seed `build.gradle.jinja` at `<ref>`, the `_commit` of `.copier-answers.yml` |
 | S3  | `seed/` depends on the main project with `implementation project(':')`. The main project has no seed source sets, and no build script adds `sourceSets.main.output` to another classpath. | `grep -rn 'sourceSets.main.output' build.gradle gradle seed/gradle` prints nothing |
-| S4  | Datafaker is declared only in `seed/gradle/dependencies.gradle`, and `generate/FakeValues` is the only class that imports `net.datafaker`. | `grep -rln 'net.datafaker' seed/src src` prints only `FakeValues.java` |
+| S4  | Datafaker is declared only in `seed/gradle/dependencies.gradle`, from the `seedLibs` catalog, whose `q4j` version equals the one in `gradle/libs.versions.toml`, and `generate/FakeValues` is the only class that imports `net.datafaker`. | `grep -rln 'net.datafaker' seed/src src` prints only `FakeValues.java` |
 | S5  | No parallel services: `seed/` has no `*Service`, `*Steps` or `*Verification` classes, sends no requests itself and opens no database connections. Requests go through a service in `src/main/.../service` and a steps class in `src/main/.../step`; extend those, or add them there. | `grep -rnE 'RestAssured\|java\.net\.http\|java\.sql\|DriverManager' seed/src` prints nothing |
 | S6  | Every setting comes from an Owner config in `<base>.config`, read through `ConfigRegistry` (AGENTS.md rule 2). No `System.getenv` or `System.getProperty` in `seed/`. | `grep -rnE 'System\.(getProperty\|getenv)' seed/src` prints nothing |
 | S7  | HTTP status codes are `org.apache.http.HttpStatus` constants (AGENTS.md rule 10). | `grep -rniE 'status[a-z]*\(.*\b[1-5][0-9]{2}\b' seed/src` prints nothing |
@@ -79,8 +79,12 @@ and its database:
 
 Write each as a public class with a public no-argument constructor in its package (`load/`, `stand/`), and list
 its fully qualified name in `seed/src/main/resources/META-INF/services/<base>.seed.load.ScenarioLoader` or
-`.../<base>.seed.stand.StandProbe`. `ServiceRegistrationRule` checks both files. Without a registration, `load`
-and `diff` stop with a message that names the missing file.
+`.../<base>.seed.stand.StandProbe`. `ServiceRegistrationRule` checks both files. Register exactly one implementation of each: with none, or with
+more than one, `load` and `diff` stop with a message that names the file to fix.
+
+Unit tests never call a registered implementation, because it changes or reads the real stand. They test
+`LoadCommand` and `DiffCommand` with lambdas, and `discover(ClassLoader)` with an empty class loader. A test that
+needs the real implementations is a `*StandTest` (section 7).
 
 ```java
 // seed/src/main/java/<base>/seed/load/ApiScenarioLoader.java
@@ -169,6 +173,13 @@ component to the project's `.ci/modules/java.yml` instead, with `path` set to th
     test_artifact_path: seed/build/allure-results
 ```
 
+A java component runs on every pull request and push, so on its own it would change the shared stand from
+several runs at the same time, and next to the end-to-end tests. Until ci-kit can run such a component with
+secrets and after other jobs ([quokkify/ci-kit#547](https://github.com/quokkify/ci-kit/issues/547)), prefer a
+separate workflow of the project that calls the same reusable ci-kit `java-ci.yml` on `workflow_dispatch` or a
+`schedule`, with a `concurrency` group per stand. If the component stays in `.ci/modules/java.yml`, set
+`run_tests: false` and enable it only on a branch that owns the stand.
+
 `test_artifact_path` is relative to `path`. The upload fails when the directory is missing, so add the component
 together with the first `*StandTest` class. The job reads the stand settings like any other run: from the Owner
 configs, so non-secret defaults go in `src/main/resources`. Without ci-kit, add a job that runs
@@ -178,6 +189,14 @@ configs, so non-secret defaults go in `src/main/resources`. Without ci-kit, add 
 
 Run it to add the module to a project generated without it.
 
+0. Check that the root build has what `seed/build.gradle` and `seed/gradle/dependencies.gradle` use, because they
+   apply the plugins by id without a version and read the root catalog `libs`:
+   - `build.gradle` applies `alias(libs.plugins.spotbugs)` and `alias(libs.plugins.archgate)`. Without the
+     ArchGate plugin, run the adoption procedure of [architecture-verification.md](architecture-verification.md)
+     first;
+   - `gradle/libs.versions.toml` declares the libraries `testng`, `checkstyle` and `archgate-bom`;
+   - `gradle/` has `compilation.gradle`, `code-analysis.gradle`, `tests.gradle` and `allure.gradle`, and
+     `tools/` has the Checkstyle and SpotBugs configs.
 1. Run `copier update --data with_seed_module=true`. It adds `seed/`, this spec, `SeedConfig` and
    `seed.properties`, but it does not change `settings.gradle`, which belongs to the project.
 2. Append to `settings.gradle` (S1):

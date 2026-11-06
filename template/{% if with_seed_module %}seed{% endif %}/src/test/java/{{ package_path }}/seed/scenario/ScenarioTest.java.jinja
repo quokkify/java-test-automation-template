@@ -30,16 +30,16 @@ public class ScenarioTest {
 
   @Test
   public void survivesAJsonRoundTrip() throws IOException {
-    Path file = Files.createTempDirectory(Path.of("build"), "scenario").resolve("scenario.json");
+    Path file = Files.createTempDirectory("scenario").resolve("scenario.json");
     Scenario scenario = Scenario.of(1, "small", List.of(USER));
     SeedJson.write(scenario, file);
     assertEquals(SeedJson.read(file, Scenario.class), scenario);
   }
 
   @Test
-  public void namesTheMissingFile() {
-    IllegalStateException error = expectThrows(IllegalStateException.class,
-      () -> SeedJson.read(Path.of("build", "missing.json"), Scenario.class));
+  public void namesTheMissingFile() throws IOException {
+    Path missing = Files.createTempDirectory("seed").resolve("missing.json");
+    IllegalStateException error = expectThrows(IllegalStateException.class, () -> SeedJson.read(missing, Scenario.class));
     assertTrue(error.getMessage().contains("missing.json"), error.getMessage());
   }
 

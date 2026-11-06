@@ -4,11 +4,17 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.SplittableRandom;
 import javax.imageio.ImageIO;
 
 /**
- * Small PNG images, for example avatars to upload. The same key always gives the same pixels.
+ * Small PNG images, for example avatars to upload. The same key always gives the same pixels, seeded with 64 bits
+ * of the SHA-256 of the key. The PNG bytes come from the JDK encoder and may differ between JDK versions, so
+ * compare decoded pixels, not files, across JDKs.
  */
 public final class PngFixture {
 
@@ -19,7 +25,7 @@ public final class PngFixture {
   }
 
   public static byte[] render(String key) {
-    SplittableRandom random = new SplittableRandom(key.hashCode());
+    SplittableRandom random = new SplittableRandom(seed(key));
     int foreground = random.nextInt(COLORS);
     int background = random.nextInt(COLORS);
     BufferedImage image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB);
@@ -35,5 +41,14 @@ public final class PngFixture {
       throw new UncheckedIOException("Cannot render the PNG fixture " + key, e);
     }
     return png.toByteArray();
+  }
+
+  static long seed(String key) {
+    try {
+      byte[] digest = MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
+      return ByteBuffer.wrap(digest).getLong();
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("Every JDK provides SHA-256", e);
+    }
   }
 }

@@ -15,7 +15,7 @@ public class LoadDiffCommandTest {
 
   @Test
   public void loadRecordsTheCheckpointThenLoads() throws IOException {
-    Path dir = Files.createTempDirectory(Path.of("build"), "load");
+    Path dir = Files.createTempDirectory("load");
     SeedCli.main(new String[] {"generate", "--seed", "1", "--dir", dir.toString()});
     List<Object> loaded = new ArrayList<>();
     new LoadCommand(loaded::add, () -> Map.of("users", "0")).run(dir);
@@ -25,7 +25,7 @@ public class LoadDiffCommandTest {
 
   @Test
   public void diffWritesTheChangesSinceTheCheckpoint() throws IOException {
-    Path dir = Files.createTempDirectory(Path.of("build"), "diff");
+    Path dir = Files.createTempDirectory("diff");
     SeedCli.main(new String[] {"generate", "--seed", "1", "--dir", dir.toString()});
     new LoadCommand(scenario -> { }, () -> Map.of("users", "0", "orders", "3")).run(dir);
     new DiffCommand(() -> Map.of("users", "5", "carts", "1")).run(dir);

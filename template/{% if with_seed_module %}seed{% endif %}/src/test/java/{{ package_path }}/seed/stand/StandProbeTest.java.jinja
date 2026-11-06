@@ -1,15 +1,36 @@
 package {{ base_package }}.seed.stand;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.List;
+import java.util.Map;
+
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.expectThrows;
 
 public class StandProbeTest {
 
   @Test
-  public void discoveryNamesTheMissingRegistration() {
-    IllegalStateException error = expectThrows(IllegalStateException.class, StandProbe::discover);
-    assertTrue(error.getMessage().contains("META-INF/services/" + StandProbe.class.getName()), error.getMessage());
+  public void discoveryNamesTheMissingRegistration() throws Exception {
+    try (URLClassLoader empty = new URLClassLoader(new URL[0], ClassLoader.getPlatformClassLoader())) {
+      IllegalStateException error = expectThrows(IllegalStateException.class, () -> StandProbe.discover(empty));
+      assertTrue(error.getMessage().contains("META-INF/services/" + StandProbe.class.getName()), error.getMessage());
+    }
+  }
+
+  @Test
+  public void singleReturnsTheOnlyImplementation() {
+    StandProbe only = Map::of;
+    assertSame(StandProbe.single(List.of(only)), only);
+  }
+
+  @Test
+  public void singleRejectsMoreThanOneImplementation() {
+    List<StandProbe> registered = List.of(Map::of, Map::of);
+    IllegalStateException error = expectThrows(IllegalStateException.class, () -> StandProbe.single(registered));
+    assertTrue(error.getMessage().startsWith("More than one " + StandProbe.class.getName()), error.getMessage());
   }
 }

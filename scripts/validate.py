@@ -312,6 +312,51 @@ public class ProbeStandTest {
 """
 
 
+STUB_LOADER = """package com.example.test_automation.seed.load;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import com.example.test_automation.seed.scenario.Scenario;
+
+public class StubScenarioLoader implements ScenarioLoader {
+
+  @Override
+  public void load(Scenario scenario) {
+    try {
+      Files.writeString(Path.of("MARKER"), "loaded");
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+}
+"""
+STUB_PROBE = """package com.example.test_automation.seed.stand;
+
+import java.util.Map;
+
+public class StubStandProbe implements StandProbe {
+
+  @Override
+  public Map<String, String> capture() {
+    return Map.of("users", "0");
+  }
+}
+"""
+# A seed block of a guide: `{%- ... %}` also drops the newline before it, `-#}` the one after the leading comment.
+SEED_BLOCK = re.compile(r"\n\{%- if with_seed_module %\}.*?\{%- endif %\}"
+                        r"|\{% if with_seed_module %\}.*?\{% endif %\}|^\{#-.*?-#\}\n", re.S)
+
+
+def assert_guides_unchanged_without_seed(plain: Path) -> None:
+    """Without the flag, the guides are their .jinja source minus the seed blocks: nothing else is templated."""
+    for guide in ("AGENTS.md", "README.md"):
+        source = (ROOT / "template" / f"{guide}.jinja").read_text()
+        assert (plain / guide).read_text() == SEED_BLOCK.sub("", source), f"{guide} renders differently without seed"
+
+
 def assert_seed_static(project: Path, plain: Path) -> None:
     """With the flag on, seed/ is generated and wired; with it off, nothing of it is."""
     for name in SEED_EXPECTED:
@@ -343,6 +388,15 @@ def assert_seed_static(project: Path, plain: Path) -> None:
             text = path.read_text()
             assert "{%" not in text and "{{" not in text, f"unrendered template in {path}"
     assert (plain / "settings.gradle").read_text() == 'rootProject.name = "test-automation"\n'
+    assert_guides_unchanged_without_seed(plain)
+    root_build = (project / "build.gradle").read_text()
+    for plugin in ("alias(libs.plugins.spotbugs)", "alias(libs.plugins.archgate)"):
+        assert plugin in root_build, f"seed/build.gradle applies {plugin} by id, so the root build must apply it"
+    for library in ("testng", "checkstyle", "archgate-bom"):
+        assert re.search(rf"^{library} = ", (project / "gradle/libs.versions.toml").read_text(), re.M), library
+    versions = [re.search(r'^q4j = "([^"]+)"$', (project / name).read_text(), re.M).group(1)
+                for name in ("gradle/libs.versions.toml", "seed/gradle/seed.versions.toml")]
+    assert versions[0] == versions[1], f"the q4j versions of both catalogs must match: {versions}"
 
 
 def assert_seed_gradle(project: Path) -> None:
@@ -361,6 +415,7 @@ def assert_seed_gradle(project: Path) -> None:
     assert outputs[0] == outputs[1] and outputs[0], "generate --seed 1 must write identical files"
     golden = (project / "seed/src/test/resources/golden/scenario-seed-1-small.json").read_bytes()
     assert outputs[0][Path("scenario.json")] == golden, "generate --seed 1 must match the golden scenario"
+    assert_registered_extensions_stay_unused(project)
     probe = project / SEED_TEST / "load/ProbeStandTest.java"
     probe.write_text(STAND_PROBE)
     try:
@@ -371,6 +426,33 @@ def assert_seed_gradle(project: Path) -> None:
             assert expected or "SeedCliTest" in output, f"{task} must run the unit tests:\n{output}"
     finally:
         probe.unlink()
+
+
+def assert_registered_extensions_stay_unused(project: Path) -> None:
+    """Registered ScenarioLoader/StandProbe and data in the default dir must not make :seed:test call them."""
+    marker = project / "seed/MARKER"
+    stubs = {
+        f"{SEED_MAIN}/load/StubScenarioLoader.java": STUB_LOADER,
+        f"{SEED_MAIN}/stand/StubStandProbe.java": STUB_PROBE,
+        "seed/src/main/resources/META-INF/services/com.example.test_automation.seed.load.ScenarioLoader":
+            "com.example.test_automation.seed.load.StubScenarioLoader\n",
+        "seed/src/main/resources/META-INF/services/com.example.test_automation.seed.stand.StandProbe":
+            "com.example.test_automation.seed.stand.StubStandProbe\n",
+    }
+    for name, content in stubs.items():
+        (project / name).parent.mkdir(parents=True, exist_ok=True)
+        (project / name).write_text(content)
+    try:
+        run(["./gradlew", "--no-daemon", "-q", ":seed:run", "--args=generate --seed 1"], project)
+        run(["./gradlew", "--no-daemon", "-q", ":seed:run", "--args=load"], project)
+        assert marker.is_file(), "the stub loader must work when the command line calls it"
+        marker.unlink()
+        run(["./gradlew", "--no-daemon", ":seed:test", "--rerun"], project)
+        assert not marker.exists(), ":seed:test must not call a registered ScenarioLoader"
+    finally:
+        for name in stubs:
+            (project / name).unlink()
+        marker.unlink(missing_ok=True)
 
 
 def validate(static: bool) -> None:
