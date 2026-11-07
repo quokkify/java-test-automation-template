@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.1](https://github.com/quokkify/java-test-automation-template/compare/v2.0.0...v2.0.1) (2026-11-07)
+
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 1 internal
+
+<details><summary>Internal changes (1 PR)</summary>
+
+**Maintenance**
+
+- **template:** update shared project template ([#58](https://github.com/quokkify/java-test-automation-template/pull/58))
+
+</details>
+
 ## [2.0.0](https://github.com/quokkify/java-test-automation-template/compare/v1.4.0...v2.0.0) (2026-11-07)
 
 <!-- project-toolkit:release-notes v2 -->
