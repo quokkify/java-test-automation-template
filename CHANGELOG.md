@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/quokkify/java-test-automation-template/compare/v2.0.0...v2.0.1) (2026-11-07)
+
+
+### 🧹 Chores
+
+* **template:** update shared project template ([#58](https://github.com/quokkify/java-test-automation-template/issues/58)) ([1cdc156](https://github.com/quokkify/java-test-automation-template/commit/1cdc156edb7e9120fadff878e969f0195c181608))
+
 ## [2.0.0](https://github.com/quokkify/java-test-automation-template/compare/v1.4.0...v2.0.0) (2026-11-07)
 
 <!-- project-toolkit:release-notes v2 -->
