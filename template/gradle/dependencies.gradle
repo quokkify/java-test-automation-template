@@ -6,5 +6,7 @@ dependencies {
     implementation libs.q4j.config
     implementation libs.q4j.testng
     testImplementation libs.testng
+    testImplementation platform(libs.archgate.bom)
+    testImplementation 'dev.quokkify.archgate:archgate-rules-archunit'
     checkstyle libs.checkstyle
 }
