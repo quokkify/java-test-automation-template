@@ -48,7 +48,7 @@ src/test/resources/   META-INF/services listener registration, optional testng.p
 
 Declare a q4j module that `src/main` uses as `implementation` in `gradle/dependencies.gradle`. Use `testImplementation` only for test-only libraries such as TestNG. Why: `testImplementation` hides the module from `src/main`, and that pushes framework code into `src/test`.
 
-Some q4j modules do not pass their own base types on to your build. `rest-assured` needs `dev.quokkify:testng` (for `AbstractSteps`) and `dev.quokkify:config` (for `ConfigRegistry`) declared as `implementation` too. If `src/main` fails to compile on a q4j type, add the module that contains that type.
+Steps modules such as `rest-assured` bring `dev.quokkify:testng` (for `AbstractSteps`) with them. Declare `dev.quokkify:config` (for `ConfigRegistry`) as `implementation` yourself: the project calls it directly. If `src/main` fails to compile on a q4j type, add the module that contains that type.
 
 If this project was generated before this file existed, it may still have `testImplementation libs.q4j.config` and config classes under `src/test`. Move them to `src/main` and switch the dependency to `implementation` before you add new code.
 
