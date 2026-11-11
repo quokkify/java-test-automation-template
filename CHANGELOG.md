@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.0.1](https://github.com/quokkify/java-test-automation-template/compare/v2.0.0...v2.0.1) (2026-11-11)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dev.quokkify:config to v0.15.0 ([#66](https://github.com/quokkify/java-test-automation-template/issues/66)) ([77b9e8f](https://github.com/quokkify/java-test-automation-template/commit/77b9e8f7540ec5460bb7e18a7b3f3c0870847dd4))
+* **deps:** update q4j to 0.15.0 and drop the testng workaround ([#65](https://github.com/quokkify/java-test-automation-template/issues/65)) ([0bfbc90](https://github.com/quokkify/java-test-automation-template/commit/0bfbc90bd5529f0b45e4ba53a0722f07bf6c1ba0)), closes [#64](https://github.com/quokkify/java-test-automation-template/issues/64)
+* **deps:** update q4j to v0.14.1 ([#59](https://github.com/quokkify/java-test-automation-template/issues/59)) ([87d119c](https://github.com/quokkify/java-test-automation-template/commit/87d119ccc2745c0bfbd85577c31d6629366544ca))
+
+
+### 📦 Dependencies
+
+* **deps:** update actions/setup-java action to v6.2.0 ([#62](https://github.com/quokkify/java-test-automation-template/issues/62)) ([46d27fb](https://github.com/quokkify/java-test-automation-template/commit/46d27fb633fee30be15f0fa1b3627bd9dbdd24b5))
+* **deps:** update archgate to v0.2.1 ([#63](https://github.com/quokkify/java-test-automation-template/issues/63)) ([313cc4e](https://github.com/quokkify/java-test-automation-template/commit/313cc4ea5b96ad65d4c223a2de886b13172c38b0))
+* **deps:** update gradle to v9.9.0 ([#56](https://github.com/quokkify/java-test-automation-template/issues/56)) ([767bcad](https://github.com/quokkify/java-test-automation-template/commit/767bcad55dfe1d287fa8e521583189ed5a71c709))
+
+
+### 🧹 Chores
+
+* **template:** update shared project template ([#58](https://github.com/quokkify/java-test-automation-template/issues/58)) ([1cdc156](https://github.com/quokkify/java-test-automation-template/commit/1cdc156edb7e9120fadff878e969f0195c181608))
+* **template:** update shared project template ([#61](https://github.com/quokkify/java-test-automation-template/issues/61)) ([25f036b](https://github.com/quokkify/java-test-automation-template/commit/25f036b245f60c402ed72233cad4769b8d7e0428))
+
 ## [2.0.0](https://github.com/quokkify/java-test-automation-template/compare/v1.4.0...v2.0.0) (2026-11-07)
 
 <!-- project-toolkit:release-notes v2 -->
