@@ -2,25 +2,32 @@
 
 ## [2.0.1](https://github.com/quokkify/java-test-automation-template/compare/v2.0.0...v2.0.1) (2026-11-11)
 
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 1 fixed · 2 updated · 6 internal
 
-### 🐛 Bug Fixes
+### 🐛 Fixed
 
-* **deps:** update dev.quokkify:config to v0.15.0 ([#66](https://github.com/quokkify/java-test-automation-template/issues/66)) ([77b9e8f](https://github.com/quokkify/java-test-automation-template/commit/77b9e8f7540ec5460bb7e18a7b3f3c0870847dd4))
-* **deps:** update q4j to 0.15.0 and drop the testng workaround ([#65](https://github.com/quokkify/java-test-automation-template/issues/65)) ([0bfbc90](https://github.com/quokkify/java-test-automation-template/commit/0bfbc90bd5529f0b45e4ba53a0722f07bf6c1ba0)), closes [#64](https://github.com/quokkify/java-test-automation-template/issues/64)
-* **deps:** update q4j to v0.14.1 ([#59](https://github.com/quokkify/java-test-automation-template/issues/59)) ([87d119c](https://github.com/quokkify/java-test-automation-template/commit/87d119ccc2745c0bfbd85577c31d6629366544ca))
+- **deps:** update q4j to 0.15.0 and drop the testng workaround ([#65](https://github.com/quokkify/java-test-automation-template/issues/65)) ([0bfbc90](https://github.com/quokkify/java-test-automation-template/commit/0bfbc90bd5529f0b45e4ba53a0722f07bf6c1ba0)), closes [#64](https://github.com/quokkify/java-test-automation-template/issues/64)
 
+### ⬆️ Updated
 
-### 📦 Dependencies
+- dev.quokkify:config 0.14.1 → 0.15.0 ([#66](https://github.com/quokkify/java-test-automation-template/pull/66))
+- q4j 0.12.2 → 0.14.1 ([#59](https://github.com/quokkify/java-test-automation-template/pull/59))
 
-* **deps:** update actions/setup-java action to v6.2.0 ([#62](https://github.com/quokkify/java-test-automation-template/issues/62)) ([46d27fb](https://github.com/quokkify/java-test-automation-template/commit/46d27fb633fee30be15f0fa1b3627bd9dbdd24b5))
-* **deps:** update archgate to v0.2.1 ([#63](https://github.com/quokkify/java-test-automation-template/issues/63)) ([313cc4e](https://github.com/quokkify/java-test-automation-template/commit/313cc4ea5b96ad65d4c223a2de886b13172c38b0))
-* **deps:** update gradle to v9.9.0 ([#56](https://github.com/quokkify/java-test-automation-template/issues/56)) ([767bcad](https://github.com/quokkify/java-test-automation-template/commit/767bcad55dfe1d287fa8e521583189ed5a71c709))
+<details><summary>Internal changes (6 PRs)</summary>
 
+**Dependencies**
 
-### 🧹 Chores
+- actions/setup-java v6.1.0 → v6.2.0 ([#62](https://github.com/quokkify/java-test-automation-template/pull/62))
+- archgate 0.1.2 → 0.2.1 ([#63](https://github.com/quokkify/java-test-automation-template/pull/63))
+- gradle 9.8.2 → 9.9.0 ([#56](https://github.com/quokkify/java-test-automation-template/pull/56))
 
-* **template:** update shared project template ([#58](https://github.com/quokkify/java-test-automation-template/issues/58)) ([1cdc156](https://github.com/quokkify/java-test-automation-template/commit/1cdc156edb7e9120fadff878e969f0195c181608))
-* **template:** update shared project template ([#61](https://github.com/quokkify/java-test-automation-template/issues/61)) ([25f036b](https://github.com/quokkify/java-test-automation-template/commit/25f036b245f60c402ed72233cad4769b8d7e0428))
+**Maintenance**
+
+- **template:** update shared project template ([#58](https://github.com/quokkify/java-test-automation-template/pull/58), [#61](https://github.com/quokkify/java-test-automation-template/pull/61))
+- **deps:** update q4j to 0.15.0 and drop the testng workaround — Generated projects use q4j 0.15.0. Steps modules such as `dev.quokkify:rest-assured` now bring `dev.quokkify:testng` with them, and `AGENTS.md` no longer asks you to declare it next to them. Run `copier update` to refresh `AGENTS.md`. ([#65](https://github.com/quokkify/java-test-automation-template/pull/65))
+
+</details>
 
 ## [2.0.0](https://github.com/quokkify/java-test-automation-template/compare/v1.4.0...v2.0.0) (2026-11-07)
 
