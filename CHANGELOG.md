@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.2](https://github.com/quokkify/java-test-automation-template/compare/v2.0.1...v2.0.2) (2026-11-13)
+
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 1 internal
+
+<details><summary>Internal changes (1 PR)</summary>
+
+**Dependencies**
+
+- gradle 9.9.0 → 9.9.1 ([#68](https://github.com/quokkify/java-test-automation-template/pull/68))
+
+</details>
+
 ## [2.0.1](https://github.com/quokkify/java-test-automation-template/compare/v2.0.0...v2.0.1) (2026-11-11)
 
 <!-- project-toolkit:release-notes v2 -->
