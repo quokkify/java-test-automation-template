@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.0.2](https://github.com/quokkify/java-test-automation-template/compare/v2.0.1...v2.0.2) (2026-11-21)
+
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 1 updated · 3 internal
+
+### ⬆️ Updated
+
+- q4j 0.15.0 → 0.16.0 ([#71](https://github.com/quokkify/java-test-automation-template/pull/71))
+
+<details><summary>Internal changes (3 PRs)</summary>
+
+**Dependencies**
+
+- gradle 9.9.0 → 9.9.1 ([#68](https://github.com/quokkify/java-test-automation-template/pull/68))
+
+**Maintenance**
+
+- **renovate:** adopt the supply-chain hardening and stack grouping presets ([#73](https://github.com/quokkify/java-test-automation-template/pull/73))
+- **template:** update shared project template ([#74](https://github.com/quokkify/java-test-automation-template/pull/74))
+
+</details>
+
 ## [2.0.1](https://github.com/quokkify/java-test-automation-template/compare/v2.0.0...v2.0.1) (2026-11-11)
 
 <!-- project-toolkit:release-notes v2 -->
