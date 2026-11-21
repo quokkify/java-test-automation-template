@@ -390,6 +390,17 @@ def validate(static: bool) -> None:
                 pass
             else:
                 raise AssertionError(f"invalid answer accepted: {bad}")
+        # Regression guard: `$` also matches before a trailing newline, so every validated answer must be
+        # rejected, by its own validator, when it ends in one. The valid answers rendered above stay accepted.
+        for question, valid in (("project_name", "qa.suite"), ("package_root", "dev.quokkify"),
+                                ("package_name", "marketdesk")):
+            try:
+                run_copy(str(source), temporary / f"newline-{question}", data={question: valid + "\n"},
+                         defaults=True, vcs_ref="HEAD")
+            except ValueError as error:
+                assert question in str(error), f"{question} must be rejected by its own validator: {error}"
+            else:
+                raise AssertionError(f"{question} accepted a trailing newline")
 
         if not static:
             run(["./gradlew", "--no-daemon", *GRADLE_TASKS], project)
